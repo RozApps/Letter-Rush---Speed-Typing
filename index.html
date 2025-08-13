@@ -1,195 +1,4 @@
-'Weather': ['sunny', 'cloudy', 'rainy', 'snowy', 'windy', 'stormy', 'foggy', 'humid', 'dry', 'hot', 'cold', 'freezing', 'warm', 'cool', 'thunder', 'lightning', 'hail', 'sleet', 'drizzle', 'mist'],
-
-        'Emotions': ['happy', 'sad', 'angry', 'excited', 'nervous', 'calm', 'surprised', 'confused', 'proud', 'embarrassed', 'jealous', 'grateful', 'worried', 'relaxed', 'frustrated', 'content', 'anxious', 'joyful', 'disappointed', 'hopeful']
-      };
-
-      let currentTopic = '';
-      let currentLetter = 'A';
-      let currentLetterIndex = 0;
-      let score = 0;
-      let streak = 0;
-      let bestStreak = 0;
-      let gameRunning = false;
-      let timeLeft = 60;
-      let timer = null;
-      let completedWords = [];
-      let scrambledOrder = false;
-      let letterSequence = [];
-      let reportedWords = [];
-      let lastRejectedWord = null;
-      
-      // New game state variables
-      let gameMode = 'classic';
-      let letterMode = 'all';
-      let difficulty = 'normal';
-      let powerUps = { skip: 3, extraTime: 2, hint: 3 };
-      let comboMultiplier = 1;
-      let fireMode = false;
-      let fireModeEnd = 0;
-      let hintActive = false;
-
-      const topicSelect = document.getElementById('topicSelect');
-      const gameModeSelect = document.getElementById('gameModeSelect');
-      const letterModeSelect = document.getElementById('letterModeSelect');
-      const difficultySelect = document.getElementById('difficultySelect');
-      const topicDisplay = document.getElementById('topicDisplay');
-      const gameContent = document.getElementById('gameContent');
-      const gameOver = document.getElementById('gameOver');
-      const currentLetterEl = document.getElementById('currentLetter');
-      const wordInput = document.getElementById('wordInput');
-      const feedback = document.getElementById('feedback');
-      const scoreEl = document.getElementById('score');
-      const streakEl = document.getElementById('streak');
-      const letterProgressEl = document.getElementById('letterProgress');
-      const timerEl = document.getElementById('timer');
-      const scrambleButton = document.getElementById('scrambleButton');
-      const comboDisplay = document.getElementById('comboDisplay');
-      const hintDisplay = document.getElementById('hintDisplay');
-
-      // Populate topics
-      TOPICS.forEach(topic => {
-        const opt = document.createElement('option');
-        opt.value = topic;
-        opt.textContent = topic;
-        topicSelect.appendChild(opt);
-      });
-
-      function randomTopic() {
-        const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
-        topicSelect.value = topic;
-        currentTopic = topic;
-        topicDisplay.textContent = `Topic: ${topic}`;
-      }
-
-      function toggleScramble() {
-        scrambledOrder = !scrambledOrder;
-        if (scrambledOrder) {
-          scrambleButton.textContent = '🔀 Scrambled';
-        } else {
-          scrambleButton.textContent = '📝 Order';
-        }
-      }
-
-      function createLetterSequence() {
-        let letters;
-        letterMode = letterModeSelect.value;
-        
-        switch(letterMode) {
-          case 'all':
-            letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-            break;
-          case 'no-qx':
-            letters = 'ABCDEFGHIJKLMNOPRSTUVWYZ'.split('');
-            break;
-          case 'vowels':
-            letters = 'AEIOU'.split('');
-            break;
-          case 'consonants':
-            letters = 'BCDFGHJKLMNPQRSTVWXYZ'.split('');
-            break;
-          case 'backwards':
-            letters = 'ZYXWVUTSRQPONMLKJIHGFEDCBA'.split('');
-            break;
-        }
-        
-        if (scrambledOrder && letterMode !== 'backwards') {
-          for (let i = letters.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [letters[i], letters[j]] = [letters[j], letters[i]];
-          }
-        }
-        return letters;
-      }
-
-      function getInitialTime() {
-        gameMode = gameModeSelect.value;
-        difficulty = difficultySelect.value;
-        
-        let baseTime;
-        switch(gameMode) {
-          case 'lightning': baseTime = 30; break;
-          case 'endurance': baseTime = 30; break;
-          case 'sudden-death': baseTime = 999; break;
-          default: baseTime = 60; break;
-        }
-        
-        if (difficulty === 'beginner') baseTime += 30;
-        else if (difficulty === 'expert') baseTime -= 15;
-        else if (difficulty === 'master') baseTime -= 30;
-        
-        return baseTime;
-      }
-
-      function startGame() {
-        if (!topicSelect.value) {
-          alert('Please choose a topic first!');
-          return;
-        }
-
-        currentTopic = topicSelect.value;
-        letterSequence = createLetterSequence();
-        currentLetterIndex = 0;
-        currentLetter = letterSequence[0];
-        score = 0;
-        streak = 0;
-        bestStreak = 0;
-        timeLeft = getInitialTime();
-        completedWords = [];
-        gameRunning = true;
-        powerUps = { skip: 3, extraTime: 2, hint: 3 };
-        comboMultiplier = 1;
-        fireMode = false;
-        hintActive = false;
-
-        gameContent.style.display = 'block';
-        gameOver.style.display = 'none';
-        topicDisplay.textContent = `Topic: ${currentTopic}`;
-
-        updatePowerUpButtons();
-        updateDisplay();
-        wordInput.focus();
-        
-        timer = setInterval(() => {
-          timeLeft -= 0.1;
-          timerEl.textContent = timeLeft.toFixed(1) + 's';
-          
-          if (timeLeft <= 10) {
-            timerEl.classList.add('urgent');
-          }
-          
-          if (fireMode && Date.now() > fireModeEnd) {
-            fireMode = false;
-            comboMultiplier = 1;
-            wordInput.classList.remove('fire-mode');
-            updateComboDisplay();
-          }
-          
-          if (timeLeft <= 0) {
-            endGame();
-          }
-        }, 100);
-      }
-
-      function nextLetter() {
-        currentLetterIndex++;
-        if (currentLetterIndex >= letterSequence.length) {
-          currentLetterIndex = 0;
-        }
-        currentLetter = letterSequence[currentLetterIndex];
-        updateDisplay();
-      }
-
-      function updateDisplay() {
-        currentLetterEl.textContent = currentLetter;
-        scoreEl.textContent = score;
-        streakEl.textContent = streak;
-        letterProgressEl.textContent = `${currentLetterIndex + 1}/${letterSequence.length}`;
-        wordInput.value = '';
-        wordInput.className = fireMode ? 'word-input fire-mode' : 'word-input';
-        feedback.innerHTML = '';
-        hintDisplay.textContent = '';
-        updateComboDisplay();
-      }<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <base target="_top">
@@ -641,4 +450,460 @@
 
         'Tools': ['hammer', 'screwdriver', 'wrench', 'saw', 'drill', 'pliers', 'measuring tape', 'level', 'chisel', 'file', 'sandpaper', 'nail', 'screw', 'bolt', 'nut'],
 
-        'Weather': ['sunny', 'cloudy', 'rainy', 'snowy', 'windy', 'stormy', 'foggy', 'humid', 'dry', 'hot', 'col
+        'Weather': ['sunny', 'cloudy', 'rainy', 'snowy', 'windy', 'stormy', 'foggy', 'humid', 'dry', 'hot', 'cold', 'freezing', 'warm', 'cool', 'thunder', 'lightning', 'hail', 'sleet', 'drizzle', 'mist'],
+
+        'Emotions': ['happy', 'sad', 'angry', 'excited', 'nervous', 'calm', 'surprised', 'confused', 'proud', 'embarrassed', 'jealous', 'grateful', 'worried', 'relaxed', 'frustrated', 'content', 'anxious', 'joyful', 'disappointed', 'hopeful']
+      };
+
+      let currentTopic = '';
+      let currentLetter = 'A';
+      let currentLetterIndex = 0;
+      let score = 0;
+      let streak = 0;
+      let bestStreak = 0;
+      let gameRunning = false;
+      let timeLeft = 60;
+      let timer = null;
+      let completedWords = [];
+      let scrambledOrder = false;
+      let letterSequence = [];
+      let reportedWords = [];
+      let lastRejectedWord = null;
+      
+      // New game state variables
+      let gameMode = 'classic';
+      let letterMode = 'all';
+      let difficulty = 'normal';
+      let powerUps = { skip: 3, extraTime: 2, hint: 3 };
+      let comboMultiplier = 1;
+      let fireMode = false;
+      let fireModeEnd = 0;
+      let hintActive = false;
+
+      const topicSelect = document.getElementById('topicSelect');
+      const gameModeSelect = document.getElementById('gameModeSelect');
+      const letterModeSelect = document.getElementById('letterModeSelect');
+      const difficultySelect = document.getElementById('difficultySelect');
+      const topicDisplay = document.getElementById('topicDisplay');
+      const gameContent = document.getElementById('gameContent');
+      const gameOver = document.getElementById('gameOver');
+      const currentLetterEl = document.getElementById('currentLetter');
+      const wordInput = document.getElementById('wordInput');
+      const feedback = document.getElementById('feedback');
+      const scoreEl = document.getElementById('score');
+      const streakEl = document.getElementById('streak');
+      const letterProgressEl = document.getElementById('letterProgress');
+      const timerEl = document.getElementById('timer');
+      const scrambleButton = document.getElementById('scrambleButton');
+      const comboDisplay = document.getElementById('comboDisplay');
+      const hintDisplay = document.getElementById('hintDisplay');
+
+      // Populate topics
+      TOPICS.forEach(topic => {
+        const opt = document.createElement('option');
+        opt.value = topic;
+        opt.textContent = topic;
+        topicSelect.appendChild(opt);
+      });
+
+      function randomTopic() {
+        const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
+        topicSelect.value = topic;
+        currentTopic = topic;
+        topicDisplay.textContent = `Topic: ${topic}`;
+      }
+
+      function toggleScramble() {
+        scrambledOrder = !scrambledOrder;
+        if (scrambledOrder) {
+          scrambleButton.textContent = '🔀 Scrambled';
+        } else {
+          scrambleButton.textContent = '📝 Order';
+        }
+      }
+
+      function createLetterSequence() {
+        let letters;
+        letterMode = letterModeSelect.value;
+        
+        switch(letterMode) {
+          case 'all':
+            letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            break;
+          case 'no-qx':
+            letters = 'ABCDEFGHIJKLMNOPRSTUVWYZ'.split('');
+            break;
+          case 'vowels':
+            letters = 'AEIOU'.split('');
+            break;
+          case 'consonants':
+            letters = 'BCDFGHJKLMNPQRSTVWXYZ'.split('');
+            break;
+          case 'backwards':
+            letters = 'ZYXWVUTSRQPONMLKJIHGFEDCBA'.split('');
+            break;
+        }
+        
+        if (scrambledOrder && letterMode !== 'backwards') {
+          for (let i = letters.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [letters[i], letters[j]] = [letters[j], letters[i]];
+          }
+        }
+        return letters;
+      }
+
+      function getInitialTime() {
+        gameMode = gameModeSelect.value;
+        difficulty = difficultySelect.value;
+        
+        let baseTime;
+        switch(gameMode) {
+          case 'lightning': baseTime = 30; break;
+          case 'endurance': baseTime = 30; break;
+          case 'sudden-death': baseTime = 999; break;
+          default: baseTime = 60; break;
+        }
+        
+        if (difficulty === 'beginner') baseTime += 30;
+        else if (difficulty === 'expert') baseTime -= 15;
+        else if (difficulty === 'master') baseTime -= 30;
+        
+        return baseTime;
+      }
+
+      function startGame() {
+        if (!topicSelect.value) {
+          alert('Please choose a topic first!');
+          return;
+        }
+
+        currentTopic = topicSelect.value;
+        letterSequence = createLetterSequence();
+        currentLetterIndex = 0;
+        currentLetter = letterSequence[0];
+        score = 0;
+        streak = 0;
+        bestStreak = 0;
+        timeLeft = getInitialTime();
+        completedWords = [];
+        gameRunning = true;
+        powerUps = { skip: 3, extraTime: 2, hint: 3 };
+        comboMultiplier = 1;
+        fireMode = false;
+        hintActive = false;
+
+        gameContent.style.display = 'block';
+        gameOver.style.display = 'none';
+        topicDisplay.textContent = `Topic: ${currentTopic}`;
+
+        updatePowerUpButtons();
+        updateDisplay();
+        wordInput.focus();
+        
+        timer = setInterval(() => {
+          timeLeft -= 0.1;
+          timerEl.textContent = timeLeft.toFixed(1) + 's';
+          
+          if (timeLeft <= 10) {
+            timerEl.classList.add('urgent');
+          }
+          
+          if (fireMode && Date.now() > fireModeEnd) {
+            fireMode = false;
+            comboMultiplier = 1;
+            wordInput.classList.remove('fire-mode');
+            updateComboDisplay();
+          }
+          
+          if (timeLeft <= 0) {
+            endGame();
+          }
+        }, 100);
+      }
+
+      function nextLetter() {
+        currentLetterIndex++;
+        if (currentLetterIndex >= letterSequence.length) {
+          currentLetterIndex = 0;
+        }
+        currentLetter = letterSequence[currentLetterIndex];
+        updateDisplay();
+      }
+
+      function updateDisplay() {
+        currentLetterEl.textContent = currentLetter;
+        scoreEl.textContent = score;
+        streakEl.textContent = streak;
+        letterProgressEl.textContent = `${currentLetterIndex + 1}/${letterSequence.length}`;
+        wordInput.value = '';
+        wordInput.className = fireMode ? 'word-input fire-mode' : 'word-input';
+        feedback.innerHTML = '';
+        hintDisplay.textContent = '';
+        updateComboDisplay();
+      }
+
+      function updateComboDisplay() {
+        if (streak >= 10 && fireMode) {
+          comboDisplay.innerHTML = '<span class="combo-text">🔥 FIRE MODE! 3x Points!</span>';
+        } else if (streak >= 5) {
+          comboDisplay.innerHTML = '<span class="combo-text">⚡ 2x Points!</span>';
+        } else {
+          comboDisplay.innerHTML = '';
+        }
+      }
+
+      function updatePowerUpButtons() {
+        document.getElementById('skipButton').textContent = `⏭️ Skip (${powerUps.skip})`;
+        document.getElementById('timeButton').textContent = `⏰ +10s (${powerUps.extraTime})`;
+        document.getElementById('hintButton').textContent = `💡 Hint (${powerUps.hint})`;
+        
+        document.getElementById('skipButton').disabled = powerUps.skip <= 0;
+        document.getElementById('timeButton').disabled = powerUps.extraTime <= 0;
+        document.getElementById('hintButton').disabled = powerUps.hint <= 0;
+      }
+
+      function isValidWord(word, letter, topic) {
+        if (!word || word.length < 2) return { valid: false, reason: 'Too short' };
+        if (word[0].toLowerCase() !== letter.toLowerCase()) return { valid: false, reason: 'Wrong letter' };
+        if (!/^[a-zA-Z\s]+$/.test(word)) return { valid: false, reason: 'Letters and spaces only' };
+
+        const cleanWord = word.toLowerCase().trim();
+        const topicWords = WORD_LISTS[topic] || [];
+        
+        if (difficulty === 'expert' && word !== word.trim()) {
+          return { valid: false, reason: 'No extra spaces in Expert mode' };
+        }
+        
+        if (topicWords.includes(cleanWord)) {
+          if (difficulty === 'master') {
+            const letterWords = topicWords.filter(w => w[0].toLowerCase() === letter.toLowerCase());
+            const commonWords = letterWords.slice(0, Math.min(3, letterWords.length));
+            if (commonWords.includes(cleanWord)) {
+              return { valid: false, reason: 'Too common for Master mode', allowReport: false };
+            }
+          }
+          return { valid: true, quality: 'great', reason: 'Perfect answer!' };
+        }
+        
+        return { valid: false, reason: 'Not recognized', allowReport: true };
+      }
+
+      function submitWord() {
+        if (!gameRunning) return;
+        
+        const word = wordInput.value.trim();
+        const startTime = Date.now();
+        const result = isValidWord(word, currentLetter, currentTopic);
+        
+        if (result.valid) {
+          let points = 3;
+          
+          if (word.length >= 6) points += 2;
+          else if (word.length >= 4) points += 1;
+          
+          if ('QXZ'.includes(currentLetter)) points += 5;
+          
+          if (hintActive || Date.now() - startTime < 3000) points += 1;
+          
+          if (fireMode) points *= 3;
+          else if (streak >= 5) points *= 2;
+          
+          score += points;
+          streak++;
+          bestStreak = Math.max(bestStreak, streak);
+          
+          if (streak === 10) {
+            fireMode = true;
+            fireModeEnd = Date.now() + 15000;
+          }
+          
+          completedWords.push({
+            letter: currentLetter,
+            word: word,
+            points: points,
+            quality: result.quality
+          });
+          
+          if (gameMode === 'lightning') timeLeft += 5;
+          else if (gameMode === 'endurance') timeLeft += 3;
+          
+          feedback.textContent = result.reason;
+          feedback.className = 'feedback success';
+          wordInput.className = fireMode ? 'word-input success fire-mode' : 'word-input success';
+          
+          setTimeout(() => {
+            nextLetter();
+          }, 500);
+          
+        } else {
+          if (gameMode === 'sudden-death') {
+            endGame();
+            return;
+          }
+          
+          streak = 0;
+          comboMultiplier = 1;
+          fireMode = false;
+          
+          feedback.className = 'feedback error';
+          wordInput.className = 'word-input error';
+          
+          if (result.allowReport) {
+            lastRejectedWord = { word: word, letter: currentLetter, topic: currentTopic };
+            feedback.innerHTML = `
+              ${result.reason}
+              <button class="report-button" onclick="openReportModal()">📝 Report Word</button>
+            `;
+          } else {
+            feedback.textContent = result.reason;
+          }
+          
+          setTimeout(() => {
+            wordInput.className = 'word-input';
+            feedback.innerHTML = '';
+            updateComboDisplay();
+          }, 3000);
+        }
+        
+        hintActive = false;
+        updatePowerUpButtons();
+      }
+
+      function useSkip() {
+        if (!gameRunning || powerUps.skip <= 0) return;
+        powerUps.skip--;
+        nextLetter();
+        updatePowerUpButtons();
+      }
+
+      function useExtraTime() {
+        if (!gameRunning || powerUps.extraTime <= 0) return;
+        powerUps.extraTime--;
+        timeLeft += 10;
+        updatePowerUpButtons();
+      }
+
+      function useHint() {
+        if (!gameRunning || powerUps.hint <= 0) return;
+        powerUps.hint--;
+        hintActive = true;
+        
+        const topicWords = WORD_LISTS[currentTopic] || [];
+        const letterWords = topicWords.filter(w => w[0].toLowerCase() === currentLetter.toLowerCase());
+        
+        if (letterWords.length > 0) {
+          const randomWord = letterWords[Math.floor(Math.random() * letterWords.length)];
+          const hintText = randomWord.substring(0, 2) + '...';
+          hintDisplay.textContent = `💡 Hint: ${hintText}`;
+        } else {
+          hintDisplay.textContent = '💡 No hints available for this letter';
+        }
+        
+        updatePowerUpButtons();
+      }
+
+      function endGame() {
+        gameRunning = false;
+        clearInterval(timer);
+        
+        gameContent.style.display = 'none';
+        gameOver.style.display = 'block';
+        
+        document.getElementById('finalScore').textContent = score;
+        document.getElementById('wordsCompleted').textContent = completedWords.length;
+        document.getElementById('bestStreak').textContent = bestStreak;
+        
+        const wordsList = document.getElementById('wordsList');
+        wordsList.innerHTML = '<h4>Your Words:</h4>';
+        completedWords.forEach(entry => {
+          const div = document.createElement('div');
+          div.className = 'word-entry';
+          
+          let bonusText = '';
+          if (entry.points > 3) bonusText = ` (+${entry.points - 3} bonus)`;
+          
+          div.innerHTML = `
+            <span><strong>${entry.letter}</strong>: ${entry.word}</span>
+            <span>${entry.points} pts${bonusText} ⭐</span>
+          `;
+          wordsList.appendChild(div);
+        });
+      }
+
+      function resetGame() {
+        gameRunning = false;
+        clearInterval(timer);
+        gameContent.style.display = 'none';
+        gameOver.style.display = 'none';
+        topicDisplay.textContent = 'Choose a topic to begin!';
+        timerEl.classList.remove('urgent');
+        fireMode = false;
+        comboMultiplier = 1;
+      }
+
+      function showInstructions() {
+        document.getElementById('instructionsModal').style.display = 'flex';
+      }
+
+      function closeInstructions() {
+        document.getElementById('instructionsModal').style.display = 'none';
+      }
+
+      function openReportModal() {
+        if (!lastRejectedWord) return;
+        
+        document.getElementById('reportedWord').textContent = lastRejectedWord.word;
+        document.getElementById('reportedTopic').textContent = lastRejectedWord.topic;
+        document.getElementById('reportModal').style.display = 'flex';
+      }
+
+      function closeReportModal() {
+        document.getElementById('reportModal').style.display = 'none';
+      }
+
+      function submitReport() {
+        if (!lastRejectedWord) return;
+        
+        reportedWords.push({
+          word: lastRejectedWord.word,
+          letter: lastRejectedWord.letter,
+          topic: lastRejectedWord.topic,
+          timestamp: new Date().toISOString()
+        });
+        
+        console.log('Reported word:', lastRejectedWord);
+        alert(`Thanks! We'll review "${lastRejectedWord.word}" for ${lastRejectedWord.topic}.`);
+        
+        closeReportModal();
+        lastRejectedWord = null;
+      }
+
+      // Event listeners
+      wordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          submitWord();
+        }
+      });
+
+      wordInput.addEventListener('input', () => {
+        if (wordInput.className.includes('success') || wordInput.className.includes('error')) {
+          wordInput.className = 'word-input';
+          feedback.innerHTML = '';
+        }
+      });
+
+      document.getElementById('reportModal').addEventListener('click', (e) => {
+        if (e.target.id === 'reportModal') {
+          closeReportModal();
+        }
+      });
+
+      document.getElementById('instructionsModal').addEventListener('click', (e) => {
+        if (e.target.id === 'instructionsModal') {
+          closeInstructions();
+        }
+      });
+    </script>
+  </body>
+</html>
