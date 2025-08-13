@@ -25,6 +25,7 @@
   const skipBtn = document.getElementById('skipButton');
   const timeBtn = document.getElementById('timeButton');
   const hintBtn = document.getElementById('hintButton');
+  const quitBtn = document.getElementById('quitButton'); // Added this reference
 
   const gameOver = document.getElementById('gameOver');
   const finalScore = document.getElementById('finalScore');
@@ -91,10 +92,6 @@
   document.getElementById('backBtn').addEventListener('click', () => { resetGame(); goto(home); });
   document.getElementById('homeFromOverBtn').addEventListener('click', () => { resetGame(); goto(home); });
   document.getElementById('playAgainBtn').addEventListener('click', () => { startGame(); });
-  document.getElementById('quitButton').addEventListener('click', () => {
-  if (!gameRunning) return;
-  endGame();
-});
 
   // ===== Game helpers =====
   function createLetterSequence(){
@@ -212,6 +209,11 @@
 
     updatePowerUpButtons();
     updateDisplay();
+    
+    // FIXED: Make sure game over is hidden when starting
+    gameOver.classList.add('hidden');
+    document.getElementById('gameContent').classList.remove('hidden');
+    
     goto(game);
     wordInput.focus();
 
@@ -285,6 +287,14 @@
       ? `💡 Hint: ${list[Math.floor(Math.random() * list.length)].slice(0, 2)}...`
       : '💡 No hints for this letter';
     updatePowerUpButtons();
+  });
+
+  // FIXED: Quit button functionality
+  quitBtn.addEventListener('click', () => {
+    if (!gameRunning) return;
+    if (confirm('Are you sure you want to quit this game?')) {
+      endGame();
+    }
   });
 
   // ===== Input / Submit =====
@@ -362,6 +372,11 @@
     if (e.key === 'Escape' && game.classList.contains('active')) {
       resetGame(); goto(home);
     }
+  });
+
+  // FIXED: Ensure game over is hidden on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    gameOver.classList.add('hidden');
   });
 
 })();
