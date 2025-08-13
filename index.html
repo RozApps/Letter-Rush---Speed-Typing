@@ -803,3 +803,23 @@
       // Event listeners
       wordInput.addEventListener('keypress', (e) => {
         if (e.key ===
+            'Enter') {
+          submitWord();
+        }
+      });
+
+      wordInput.addEventListener('input', () => {
+        if (wordInput.className.includes('success') || wordInput.className.includes('error')) {
+          wordInput.className = 'word-input';
+          feedback.innerHTML = '';
+        }
+      });
+
+      document.getElementById('reportModal').addEventListener('click', (e) => {
+        if (e.target.id === 'reportModal') {
+          closeReportModal();
+        }
+      });
+    </script>
+  </body>
+</html>
