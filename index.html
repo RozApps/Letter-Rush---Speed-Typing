@@ -311,6 +311,7 @@
     
     <div class="button-row">
       <button onclick="toggleScramble()" id="scrambleButton">📝 Order</button>
+      <button onclick="showInstructions()">❓ How to Play</button>
       <button onclick="startGame()">▶️ Start Game</button>
       <button onclick="resetGame()">🔄 Reset</button>
     </div>
@@ -345,6 +346,41 @@
         <div>Words completed: <span id="wordsCompleted">0</span></div>
         <div>Best streak: <span id="bestStreak">0</span></div>
         <div class="words-list" id="wordsList"></div>
+      </div>
+    </div>
+
+    <!-- Instructions Modal -->
+    <div id="instructionsModal" class="report-modal" style="display: none;">
+      <div class="report-content" style="max-width: 500px;">
+        <h3>🎮 How to Play Letter Rush</h3>
+        
+        <h4>🎯 Basic Gameplay:</h4>
+        <p>Type words that start with the shown letter and match the topic. Hit Enter to submit!</p>
+        
+        <h4>⏱️ Game Modes:</h4>
+        <p><strong>Classic:</strong> 60 seconds to get as many letters as possible<br>
+        <strong>Lightning:</strong> 30s + 5s bonus per correct answer<br>
+        <strong>Endurance:</strong> 30s + 3s bonus per correct answer<br>
+        <strong>Sudden Death:</strong> One mistake = game over</p>
+        
+        <h4>🔤 Letter Modes:</h4>
+        <p><strong>No Q/X:</strong> Skip the hardest letters<br>
+        <strong>Vowels Only:</strong> A, E, I, O, U challenge<br>
+        <strong>Backwards:</strong> Start from Z and work to A</p>
+        
+        <h4>⚡ Power-ups:</h4>
+        <p><strong>Skip:</strong> Jump past difficult letters<br>
+        <strong>+10s:</strong> Add time to your clock<br>
+        <strong>Hint:</strong> See first 2 letters of a valid word</p>
+        
+        <h4>🏆 Scoring:</h4>
+        <p>• Base: 3 points per word<br>
+        • Length bonus: +1 for 4+ letters, +2 for 6+ letters<br>
+        • Speed bonus: +1 for answers under 3 seconds<br>
+        • Streak bonus: 2x at 5 streak, 3x at 10 streak (Fire Mode!)<br>
+        • Rare letters: Q/X/Z worth +5 bonus points</p>
+        
+        <button onclick="closeInstructions()">✅ Got It!</button>
       </div>
     </div>
 
@@ -783,6 +819,14 @@
         document.getElementById('reportModal').style.display = 'none';
       }
 
+      function showInstructions() {
+        document.getElementById('instructionsModal').style.display = 'flex';
+      }
+
+      function closeInstructions() {
+        document.getElementById('instructionsModal').style.display = 'none';
+      }
+
       function submitReport() {
         if (!lastRejectedWord) return;
         
@@ -802,8 +846,7 @@
 
       // Event listeners
       wordInput.addEventListener('keypress', (e) => {
-        if (e.key ===
-            'Enter') {
+        if (e.key === 'Enter') {
           submitWord();
         }
       });
@@ -818,6 +861,12 @@
       document.getElementById('reportModal').addEventListener('click', (e) => {
         if (e.target.id === 'reportModal') {
           closeReportModal();
+        }
+      });
+
+      document.getElementById('instructionsModal').addEventListener('click', (e) => {
+        if (e.target.id === 'instructionsModal') {
+          closeInstructions();
         }
       });
     </script>
