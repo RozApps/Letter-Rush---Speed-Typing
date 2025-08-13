@@ -1,2 +1,23 @@
-# Letter-Rush---Speed-Typing
-Advanced speed typing word game with Lightning/Endurance/Sudden Death modes, letter challenges (vowels-only, backwards alphabet), power-ups (skip, hints, extra time), combo system with Fire Mode, and 4 difficulty levels. Strategic scoring with length/speed/rare letter bonuses.
+# Letter Rush - Speed Typing Game
+
+An advanced speed typing word game with multiple challenge modes and strategic gameplay.
+
+## 🎮 Game Modes
+- **Lightning**: 30s + bonus time per answer
+- **Endurance**: Build up time with correct answers  
+- **Sudden Death**: One mistake = game over
+
+## 🔤 Letter Challenges
+- Vowels Only, Consonants Only, Z-to-A
+- Remove difficult letters (Q/X)
+
+## ⚡ Strategic Features
+- Power-ups: Skip, Extra Time, Hints
+- Combo system with Fire Mode
+- Multiple difficulty levels
+
+## 🏆 Scoring
+- Length bonuses, rare letter bonuses
+- Streak multipliers up to 3x points
+
+Play now: [Your GitHub Pages URL]
