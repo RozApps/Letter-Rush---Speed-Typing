@@ -1,909 +1,160 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <base target="_top">
-    <title>Letter Rush - Speed Typing</title>
-    <style>
-      :root {
-        --menu-size: 18px;
-        --bg-color: #f9fafb;
-        --input-bg: white;
-        --input-border: #ccc;
-        --text-color: black;
-        --success-color: #10b981;
-        --error-color: #ef4444;
-        --accent-color: #3b82f6;
-      }
-
-      body {
-        font-family: sans-serif;
-        padding: 20px;
-        text-align: center;
-        background: var(--bg-color);
-        color: var(--text-color);
-      }
-
-      h1 {
-        font-size: 36px;
-        margin-bottom: 20px;
-      }
-
-      select, button {
-        padding: 12px 18px;
-        margin: 8px;
-        font-size: var(--menu-size);
-        min-height: 44px;
-      }
-
-      .game-area {
-        max-width: 600px;
-        margin: 20px auto;
-        padding: 30px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-
-      .challenge {
-        font-size: 32px;
-        font-weight: bold;
-        margin-bottom: 20px;
-        color: var(--accent-color);
-      }
-
-      .current-letter {
-        font-size: 64px;
-        font-weight: bold;
-        color: var(--accent-color);
-        margin: 20px 0;
-      }
-
-      .word-input {
-        width: 100%;
-        max-width: 400px;
-        padding: 15px;
-        font-size: 24px;
-        border: 3px solid var(--input-border);
-        border-radius: 8px;
-        text-align: center;
-        margin: 20px 0;
-      }
-
-      .word-input:focus {
-        outline: none;
-        border-color: var(--accent-color);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-      }
-
-      .word-input.success {
-        border-color: var(--success-color);
-        background-color: rgba(16, 185, 129, 0.1);
-      }
-
-      .word-input.error {
-        border-color: var(--error-color);
-        background-color: rgba(239, 68, 68, 0.1);
-      }
-
-      .stats {
-        display: flex;
-        justify-content: space-around;
-        margin: 20px 0;
-        font-size: 18px;
-        font-weight: bold;
-      }
-
-      .stat {
-        padding: 10px 20px;
-        background: #f3f4f6;
-        border-radius: 8px;
-      }
-
-      .timer {
-        font-size: 28px;
-        font-weight: bold;
-        color: var(--accent-color);
-        margin: 15px 0;
-      }
-
-      .timer.urgent {
-        color: var(--error-color);
-        animation: pulse 1s infinite;
-      }
-
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-      }
-
-      .feedback {
-        font-size: 18px;
-        font-weight: bold;
-        margin: 10px 0;
-        min-height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-      }
-
-      .feedback.success { color: var(--success-color); }
-      .feedback.error { color: var(--error-color); }
-
-      .report-button {
-        background: var(--error-color);
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        cursor: pointer;
-        margin-left: 10px;
-      }
-
-      .report-button:hover {
-        background: #dc2626;
-      }
-
-      .report-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-      }
-
-      .report-content {
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        max-width: 400px;
-        width: 90%;
-        text-align: center;
-      }
-
-      .report-content h3 {
-        margin-top: 0;
-        color: var(--text-color);
-      }
-
-      .report-content button {
-        margin: 10px 5px;
-        padding: 10px 20px;
-      }
-
-      .power-ups {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        margin: 15px 0;
-      }
-
-      .power-up {
-        background: var(--accent-color);
-        color: white;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 14px;
-        cursor: pointer;
-        min-width: 80px;
-      }
-
-      .power-up:hover {
-        background: #2563eb;
-      }
-
-      .power-up:disabled {
-        background: #9ca3af;
-        cursor: not-allowed;
-      }
-
-      .hint-display {
-        font-size: 16px;
-        color: var(--accent-color);
-        font-weight: bold;
-        margin: 10px 0;
-        min-height: 20px;
-      }
-
-      .combo-text {
-        color: var(--success-color);
-        font-weight: bold;
-        animation: bounce 0.5s;
-      }
-
-      @keyframes bounce {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.2); }
-      }
-
-      .fire-mode {
-        background: linear-gradient(45deg, #ff6b6b, #feca57);
-        animation: fireGlow 1s infinite alternate;
-      }
-
-      @keyframes fireGlow {
-        from { box-shadow: 0 0 20px rgba(255, 107, 107, 0.5); }
-        to { box-shadow: 0 0 30px rgba(254, 202, 87, 0.8); }
-      }
-
-      .button-row {
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 20px;
-      }
-
-      .game-over {
-        background: #f9fafb;
-        padding: 30px;
-        border-radius: 12px;
-        margin: 20px 0;
-      }
-
-      .final-score {
-        font-size: 48px;
-        font-weight: bold;
-        color: var(--accent-color);
-        margin: 20px 0;
-      }
-
-      .words-list {
-        max-height: 200px;
-        overflow-y: auto;
-        text-align: left;
-        margin: 20px 0;
-        padding: 15px;
-        background: #f9fafb;
-        border-radius: 8px;
-      }
-
-      .word-entry {
-        display: flex;
-        justify-content: space-between;
-        padding: 5px 0;
-        border-bottom: 1px solid #e5e7eb;
-      }
-
-      .word-entry:last-child {
-        border-bottom: none;
-      }
-    </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Letter Rush — Speed Typing</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>Letter Rush - Speed Typing</h1>
+    <!-- HOME SCREEN -->
+    <section id="homeScreen" class="screen active" role="region" aria-labelledby="homeTitle">
+      <header>
+        <h1 id="homeTitle">Letter Rush</h1>
+        <p class="subtitle">Choose options below. Accessibility settings are saved for next time.</p>
+      </header>
 
-    <div class="button-row">
-      <select id="topicSelect">
-        <option value="">Choose a topic</option>
-      </select>
-      <button onclick="randomTopic()">🎲 Random Topic</button>
-      
-      <select id="gameModeSelect">
-        <option value="classic">⏱️ Classic (60s)</option>
-        <option value="lightning">⚡ Lightning (30s+5s)</option>
-        <option value="endurance">🏃 Endurance (30s+3s)</option>
-        <option value="sudden-death">💀 Sudden Death</option>
-      </select>
-      
-      <select id="letterModeSelect">
-        <option value="all">🔤 All Letters</option>
-        <option value="no-qx">🚫 No Q/X</option>
-        <option value="vowels">📢 Vowels Only</option>
-        <option value="consonants">🔇 Consonants Only</option>
-        <option value="backwards">⬅️ Z to A</option>
-      </select>
-      
-      <select id="difficultySelect">
-        <option value="beginner">🌱 Beginner</option>
-        <option value="normal" selected>⚖️ Normal</option>
-        <option value="expert">🎯 Expert</option>
-        <option value="master">👑 Master</option>
-      </select>
-    </div>
-    
-    <div class="button-row">
-      <button onclick="toggleScramble()" id="scrambleButton">📝 Order</button>
-      <button onclick="showInstructions()">❓ How to Play</button>
-      <button onclick="startGame()">▶️ Start Game</button>
-      <button onclick="resetGame()">🔄 Reset</button>
-    </div>
+      <div class="stack" aria-describedby="optionsHint">
+        <span id="optionsHint" class="muted">All controls are keyboard-accessible. Use Tab/Shift+Tab to navigate.</span>
 
-    <div class="game-area">
-      <div id="topicDisplay" class="challenge">Choose a topic to begin!</div>
-      
-      <div id="gameContent" style="display: none;">
-        <div class="current-letter" id="currentLetter">A</div>
-        <input type="text" id="wordInput" class="word-input" placeholder="Type your answer..." autocomplete="off">
-        <div class="feedback" id="feedback"></div>
-        
-        <div class="stats">
-          <div class="stat">Score: <span id="score">0</span></div>
-          <div class="stat">Streak: <span id="streak">0</span> <span id="comboDisplay"></span></div>
-          <div class="stat">Letter: <span id="letterProgress">1/26</span></div>
+        <div class="control">
+          <label for="topicSelect">Topic</label>
+          <select id="topicSelect" aria-label="Choose topic">
+            <option value="">Choose a topic</option>
+          </select>
         </div>
-        
-        <div class="power-ups" id="powerUps">
-          <button onclick="useSkip()" id="skipButton" class="power-up">⏭️ Skip (3)</button>
-          <button onclick="useExtraTime()" id="timeButton" class="power-up">⏰ +10s (2)</button>
-          <button onclick="useHint()" id="hintButton" class="power-up">💡 Hint (3)</button>
+
+        <div class="control">
+          <label for="gameModeSelect">Game Mode</label>
+          <select id="gameModeSelect" aria-label="Choose mode">
+            <option value="classic">⏱️ Classic (60s)</option>
+            <option value="lightning">⚡ Lightning (30s + 5s)</option>
+            <option value="endurance">🏃 Endurance (30s + 3s)</option>
+            <option value="sudden-death">💀 Sudden Death</option>
+          </select>
         </div>
-        
-        <div class="timer" id="timer">60.0s</div>
-        <div id="hintDisplay" class="hint-display"></div>
+
+        <div class="control">
+          <label for="letterModeSelect">Letter Mode</label>
+          <select id="letterModeSelect" aria-label="Choose letter set">
+            <option value="all">🔤 All Letters</option>
+            <option value="no-qx">🚫 No Q/X</option>
+            <option value="vowels">📢 Vowels Only</option>
+            <option value="consonants">🔇 Consonants Only</option>
+            <option value="backwards">⬅️ Z to A</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label for="difficultySelect">Difficulty</label>
+          <select id="difficultySelect" aria-label="Choose difficulty">
+            <option value="beginner">🌱 Beginner</option>
+            <option value="normal" selected>⚖️ Normal</option>
+            <option value="expert">🎯 Expert</option>
+            <option value="master">👑 Master</option>
+          </select>
+        </div>
+
+        <!-- A11y panel (home) -->
+        <fieldset class="control" aria-labelledby="a11yLegendHome">
+          <legend id="a11yLegendHome">Accessibility</legend>
+          <div class="row">
+            <label for="fontSizeSelectHome" class="muted">Font size</label>
+            <select id="fontSizeSelectHome" class="a11y-font" aria-label="Font size">
+              <option value="fs-small">Small</option>
+              <option value="fs-normal" selected>Normal</option>
+              <option value="fs-large">Large</option>
+              <option value="fs-xl">Extra Large</option>
+            </select>
+          </div>
+          <div class="row">
+            <input type="checkbox" id="contrastToggleHome" class="a11y-contrast" aria-label="High contrast mode" />
+            <label for="contrastToggleHome">High contrast</label>
+          </div>
+        </fieldset>
+
+        <div class="row">
+          <button class="primary" id="startBtn">▶️ Start Game</button>
+          <button class="secondary" id="randomBtn">🎲 Random Topic</button>
+          <button class="secondary" id="howBtn">❓ How to Play</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME SCREEN -->
+    <section id="gameScreen" class="screen" role="region" aria-labelledby="gameTitle">
+      <div class="topbar">
+        <button id="backBtn" class="link" aria-label="Back to home">← Back to Home</button>
+        <h2 id="gameTitle" class="muted">Game</h2>
+        <!-- A11y panel (game) -->
+        <div class="a11y-inline" aria-label="Accessibility controls">
+          <label for="fontSizeSelectGame" class="sr-only">Font size</label>
+          <select id="fontSizeSelectGame" class="a11y-font" aria-label="Font size">
+            <option value="fs-small">A-</option>
+            <option value="fs-normal" selected>A</option>
+            <option value="fs-large">A+</option>
+            <option value="fs-xl">A++</option>
+          </select>
+          <label class="switch">
+            <input type="checkbox" id="contrastToggleGame" class="a11y-contrast" aria-label="High contrast" />
+            <span>HC</span>
+          </label>
+        </div>
       </div>
 
-      <div id="gameOver" class="game-over" style="display: none;">
-        <h2>Game Over!</h2>
-        <div class="final-score" id="finalScore">0</div>
-        <div>Words completed: <span id="wordsCompleted">0</span></div>
-        <div>Best streak: <span id="bestStreak">0</span></div>
-        <div class="words-list" id="wordsList"></div>
+      <div class="game-area">
+        <div id="gameContent">
+          <div class="challenge" id="topicDisplay">Topic: —</div>
+          <div class="current-letter" id="currentLetter">A</div>
+          <label for="wordInput" class="muted">Type a word that starts with the letter above and press Enter</label>
+          <input type="text" id="wordInput" class="word-input" placeholder="Type your answer..." autocomplete="off" aria-label="Type your word" />
+
+          <div class="feedback" id="feedback" aria-live="polite"></div>
+
+          <div class="stats">
+            <div class="stat">Score: <span id="score">0</span></div>
+            <div class="stat">Streak: <span id="streak">0</span> <span id="comboDisplay"></span></div>
+            <div class="stat">Letter: <span id="letterProgress">1/26</span></div>
+          </div>
+
+          <div class="power-ups" id="powerUps">
+            <button id="skipButton" class="power-up" type="button">⏭️ Skip (3)</button>
+            <button id="timeButton" class="power-up" type="button">⏰ +10s (2)</button>
+            <button id="hintButton" class="power-up" type="button">💡 Hint (3)</button>
+          </div>
+
+          <div class="timer" id="timer" aria-live="polite">60.0s</div>
+          <div id="hintDisplay" class="hint-display"></div>
+        </div>
+
+        <div id="gameOver" class="game-over hidden">
+          <h3>Game Over!</h3>
+          <div class="final-score" id="finalScore">0</div>
+          <div>Words completed: <span id="wordsCompleted">0</span></div>
+          <div>Best streak: <span id="bestStreak">0</span></div>
+          <div class="words-list" id="wordsList"></div>
+          <div class="button-row">
+            <button class="primary" id="playAgainBtn">🔁 Play Again</button>
+            <button class="secondary" id="homeFromOverBtn">🏠 Home</button>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Instructions Modal -->
-    <div id="instructionsModal" class="report-modal" style="display: none;">
-      <div class="report-content" style="max-width: 500px;">
-        <h3>🎮 How to Play Letter Rush</h3>
-        
-        <h4>🎯 Basic Gameplay:</h4>
-        <p>Type words that start with the shown letter and match the topic. Hit Enter to submit!</p>
-        
-        <h4>⏱️ Game Modes:</h4>
-        <p><strong>Classic:</strong> 60 seconds to get as many letters as possible<br>
-        <strong>Lightning:</strong> 30s + 5s bonus per correct answer<br>
-        <strong>Endurance:</strong> 30s + 3s bonus per correct answer<br>
-        <strong>Sudden Death:</strong> One mistake = game over</p>
-        
-        <h4>🔤 Letter Modes:</h4>
-        <p><strong>No Q/X:</strong> Skip the hardest letters<br>
-        <strong>Vowels Only:</strong> A, E, I, O, U challenge<br>
-        <strong>Backwards:</strong> Start from Z and work to A</p>
-        
-        <h4>⚡ Power-ups:</h4>
-        <p><strong>Skip:</strong> Jump past difficult letters<br>
-        <strong>+10s:</strong> Add time to your clock<br>
-        <strong>Hint:</strong> See first 2 letters of a valid word</p>
-        
-        <h4>🏆 Scoring:</h4>
-        <p>• Base: 3 points per word<br>
-        • Length bonus: +1 for 4+ letters, +2 for 6+ letters<br>
-        • Speed bonus: +1 for answers under 3 seconds<br>
-        • Streak bonus: 2x at 5 streak, 3x at 10 streak (Fire Mode!)<br>
-        • Rare letters: Q/X/Z worth +5 bonus points</p>
-        
-        <button onclick="closeInstructions()">✅ Got It!</button>
-      </div>
-    </div>
+    <!-- HOW-TO (inline) -->
+    <section id="instructionsScreen" class="screen" role="region" aria-labelledby="howTitle">
+      <h2 id="howTitle">🎮 How to Play Letter Rush</h2>
+      <ul>
+        <li><strong>Type</strong> a word that matches the topic and starts with the shown letter. Press <kbd>Enter</kbd>.</li>
+        <li><strong>Modes</strong>: Classic (60s), Lightning (30s + 5s), Endurance (30s + 3s), Sudden Death (one mistake ends game).</li>
+        <li><strong>Power-ups</strong>: Skip letter, +10s, Hint (first 2 letters).</li>
+      </ul>
+      <p class="muted">Accessibility controls appear here and during gameplay.</p>
+      <button id="closeHowBtn" class="primary">✅ Got it</button>
+    </section>
 
-    <!-- Report Modal -->
-    <div id="reportModal" class="report-modal" style="display: none;">
-      <div class="report-content">
-        <h3>Report Word</h3>
-        <p>Do you think "<span id="reportedWord"></span>" should be accepted for <span id="reportedTopic"></span>?</p>
-        <p>Your report helps improve the game!</p>
-        <button onclick="submitReport()">📝 Yes, Report It</button>
-        <button onclick="closeReportModal()">❌ Cancel</button>
-      </div>
-    </div>
-
-    <script>
-      const TOPICS = [
-        'Animals','Countries','Fruits','Cities','Colors','Sports','Vehicles',
-        'Occupations','Things in a kitchen','Movies','TV Shows','Cartoons',
-        'Superheroes','Foods','Desserts','Body parts','School subjects','Toys',
-        'Games','Stores','Restaurants','Holidays','Tools','Weather','Emotions'
-      ];
-
-      const WORD_LISTS = {
-        'Animals': ['aardvark', 'alligator', 'alpaca', 'ant', 'anteater', 'antelope', 'ape', 'armadillo', 'baboon', 'badger', 'barn owl', 'bat', 'bear', 'beaver', 'bee', 'beetle', 'bird', 'bison', 'black bear', 'blue whale', 'boar', 'brown bear', 'buffalo', 'bull', 'butterfly', 'camel', 'cat', 'caterpillar', 'cheetah', 'chicken', 'chimpanzee', 'chipmunk', 'cobra', 'cow', 'coyote', 'crab', 'crane', 'crocodile', 'crow', 'deer', 'dog', 'dolphin', 'donkey', 'dove', 'duck', 'eagle', 'eel', 'elephant', 'elk', 'emu', 'falcon', 'ferret', 'fire ant', 'fish', 'flamingo', 'fly', 'fox', 'frog', 'fruit bat', 'gazelle', 'giraffe', 'goat', 'goose', 'gorilla', 'grasshopper', 'gray wolf', 'grizzly bear', 'hamster', 'hawk', 'hedgehog', 'hippo', 'honey bee', 'horse', 'hummingbird', 'hyena', 'iguana', 'jackal', 'jaguar', 'jellyfish', 'kangaroo', 'killer whale', 'koala', 'ladybug', 'lamb', 'leopard', 'lion', 'lizard', 'llama', 'lobster', 'lynx', 'monkey', 'moose', 'mouse', 'mule', 'newt', 'octopus', 'opossum', 'ostrich', 'otter', 'owl', 'ox', 'panda', 'panther', 'parrot', 'peacock', 'pelican', 'penguin', 'pig', 'pigeon', 'polar bear', 'porcupine', 'quail', 'rabbit', 'raccoon', 'rat', 'raven', 'red fox', 'rhinoceros', 'robin', 'sea lion', 'seahorse', 'seal', 'shark', 'sheep', 'skunk', 'sloth', 'snail', 'snake', 'spider', 'squirrel', 'starfish', 'swan', 'tiger', 'turkey', 'turtle', 'unicorn', 'vampire bat', 'vulture', 'walrus', 'wasp', 'whale', 'white shark', 'wolf', 'woodpecker', 'worm', 'yak', 'zebra'],
-
-        'Countries': ['afghanistan', 'albania', 'algeria', 'andorra', 'angola', 'argentina', 'armenia', 'australia', 'austria', 'azerbaijan', 'bahamas', 'bahrain', 'bangladesh', 'barbados', 'belarus', 'belgium', 'belize', 'benin', 'bhutan', 'bolivia', 'bosnia', 'botswana', 'brazil', 'brunei', 'bulgaria', 'burkina faso', 'burundi', 'cambodia', 'cameroon', 'canada', 'cape verde', 'chad', 'chile', 'china', 'colombia', 'comoros', 'congo', 'costa rica', 'croatia', 'cuba', 'cyprus', 'czech republic', 'democratic republic of congo', 'denmark', 'djibouti', 'dominica', 'dominican republic', 'east timor', 'ecuador', 'egypt', 'el salvador', 'equatorial guinea', 'eritrea', 'estonia', 'ethiopia', 'fiji', 'finland', 'france', 'gabon', 'gambia', 'georgia', 'germany', 'ghana', 'greece', 'grenada', 'guatemala', 'guinea', 'guinea bissau', 'guyana', 'haiti', 'honduras', 'hungary', 'iceland', 'india', 'indonesia', 'iran', 'iraq', 'ireland', 'israel', 'italy', 'ivory coast', 'jamaica', 'japan', 'jordan', 'kazakhstan', 'kenya', 'kiribati', 'kuwait', 'kyrgyzstan', 'laos', 'latvia', 'lebanon', 'lesotho', 'liberia', 'libya', 'liechtenstein', 'lithuania', 'luxembourg', 'macedonia', 'madagascar', 'malawi', 'malaysia', 'maldives', 'mali', 'malta', 'marshall islands', 'mauritania', 'mauritius', 'mexico', 'micronesia', 'moldova', 'monaco', 'mongolia', 'montenegro', 'morocco', 'mozambique', 'myanmar', 'namibia', 'nauru', 'nepal', 'netherlands', 'new zealand', 'nicaragua', 'niger', 'nigeria', 'north korea', 'norway', 'oman', 'pakistan', 'palau', 'panama', 'papua new guinea', 'paraguay', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'romania', 'russia', 'rwanda', 'saint lucia', 'samoa', 'san marino', 'saudi arabia', 'senegal', 'serbia', 'seychelles', 'sierra leone', 'singapore', 'slovakia', 'slovenia', 'solomon islands', 'somalia', 'south africa', 'south korea', 'south sudan', 'spain', 'sri lanka', 'sudan', 'suriname', 'swaziland', 'sweden', 'switzerland', 'syria', 'taiwan', 'tajikistan', 'tanzania', 'thailand', 'togo', 'tonga', 'trinidad and tobago', 'tunisia', 'turkey', 'turkmenistan', 'tuvalu', 'uganda', 'ukraine', 'united arab emirates', 'united kingdom', 'united states', 'uruguay', 'uzbekistan', 'vanuatu', 'vatican city', 'venezuela', 'vietnam', 'wales', 'yemen', 'zambia', 'zimbabwe'],
-
-        'Fruits': ['acai', 'apple', 'apricot', 'avocado', 'banana', 'blackberry', 'blackcurrant', 'blueberry', 'boysenberry', 'breadfruit', 'cantaloupe', 'cherry', 'clementine', 'coconut', 'cranberry', 'currant', 'date', 'dragonfruit', 'durian', 'elderberry', 'fig', 'gooseberry', 'grape', 'grapefruit', 'guava', 'honeydew', 'huckleberry', 'jackfruit', 'kiwi', 'kumquat', 'lemon', 'lime', 'lingonberry', 'lychee', 'mandarin', 'mango', 'melon', 'mulberry', 'nectarine', 'orange', 'papaya', 'passionfruit', 'peach', 'pear', 'persimmon', 'pineapple', 'plum', 'pomegranate', 'pomelo', 'prickly pear', 'quince', 'rambutan', 'raspberry', 'starfruit', 'strawberry', 'tangerine', 'tomato', 'ugli fruit', 'vanilla', 'watermelon', 'ximenia', 'yuzu', 'zucchini'],
-
-        'Colors': ['amber', 'aqua', 'aquamarine', 'azure', 'beige', 'black', 'blue', 'bronze', 'brown', 'burgundy', 'burnt orange', 'chartreuse', 'coral', 'crimson', 'cyan', 'dark blue', 'emerald', 'forest green', 'fuchsia', 'gold', 'gray', 'green', 'hot pink', 'indigo', 'ivory', 'jade', 'khaki', 'lavender', 'lemon', 'lime', 'magenta', 'maroon', 'mint', 'navy', 'olive', 'orange', 'peach', 'pink', 'plum', 'purple', 'red', 'rose', 'ruby', 'salmon', 'scarlet', 'silver', 'tan', 'teal', 'turquoise', 'ultramarine', 'violet', 'white', 'yellow', 'zinc'],
-
-        'Cities': ['atlanta', 'amsterdam', 'austin', 'baghdad', 'baltimore', 'bangkok', 'barcelona', 'beijing', 'berlin', 'birmingham', 'bogota', 'boston', 'brussels', 'budapest', 'buenos aires', 'cairo', 'calcutta', 'cape town', 'caracas', 'chicago', 'cologne', 'copenhagen', 'dallas', 'delhi', 'denver', 'detroit', 'dublin', 'dubai', 'edinburgh', 'florence', 'frankfurt', 'geneva', 'glasgow', 'hamburg', 'helsinki', 'hong kong', 'houston', 'istanbul', 'jakarta', 'jerusalem', 'johannesburg', 'kansas city', 'kiev', 'kuala lumpur', 'kyoto', 'las vegas', 'lima', 'lisbon', 'london', 'los angeles', 'lyon', 'madrid', 'manchester', 'manila', 'marseille', 'melbourne', 'mexico city', 'miami', 'milan', 'montreal', 'moscow', 'mumbai', 'munich', 'nairobi', 'naples', 'new delhi', 'new york', 'nice', 'oslo', 'ottawa', 'paris', 'philadelphia', 'phoenix', 'prague', 'quebec', 'rio de janeiro', 'rome', 'saint petersburg', 'san francisco', 'santiago', 'sao paulo', 'seattle', 'seoul', 'shanghai', 'singapore', 'stockholm', 'sydney', 'tehran', 'tokyo', 'toronto', 'tunis', 'vancouver', 'venice', 'vienna', 'warsaw', 'washington', 'yokohama', 'zurich'],
-
-        'Sports': ['archery', 'athletics', 'badminton', 'baseball', 'basketball', 'biathlon', 'bobsled', 'bowling', 'boxing', 'canoeing', 'cricket', 'curling', 'cycling', 'darts', 'diving', 'equestrian', 'fencing', 'football', 'golf', 'gymnastics', 'handball', 'hockey', 'judo', 'karate', 'kayaking', 'lacrosse', 'marathon', 'martial arts', 'netball', 'polo', 'powerlifting', 'quidditch', 'racquetball', 'rowing', 'rugby', 'running', 'sailing', 'skiing', 'snowboarding', 'soccer', 'softball', 'squash', 'surfing', 'swimming', 'table tennis', 'taekwondo', 'tennis', 'track and field', 'triathlon', 'ultimate frisbee', 'volleyball', 'water polo', 'weightlifting', 'wrestling', 'yoga'],
-
-        'Vehicles': ['airplane', 'ambulance', 'bicycle', 'boat', 'bus', 'car', 'canoe', 'drone', 'ferry', 'helicopter', 'jet', 'kayak', 'limousine', 'motorcycle', 'plane', 'rocket', 'scooter', 'ship', 'submarine', 'taxi', 'train', 'truck', 'van', 'yacht'],
-
-        'Occupations': ['actor', 'baker', 'chef', 'doctor', 'engineer', 'farmer', 'guard', 'nurse', 'pilot', 'teacher', 'writer'],
-
-        'Things in a kitchen': ['blender', 'bowl', 'cup', 'dish', 'fork', 'glass', 'kettle', 'knife', 'ladle', 'mug', 'oven', 'pan', 'plate', 'pot', 'spoon', 'toaster'],
-
-        'Movies': ['avatar', 'batman', 'cars', 'dumbo', 'elf', 'frozen', 'gladiator', 'hulk', 'inception', 'jaws', 'kramer', 'lego movie', 'matrix', 'nemo', 'pirates', 'rocky', 'superman', 'titanic', 'up', 'wall-e', 'x-men'],
-
-        'TV Shows': ['friends', 'seinfeld', 'the office', 'breaking bad', 'lost', 'game of thrones', 'stranger things', 'the simpsons', 'family guy', 'south park'],
-
-        'Cartoons': ['mickey mouse', 'bugs bunny', 'tom and jerry', 'scooby doo', 'spongebob', 'pokemon', 'dragon ball', 'naruto', 'sailor moon', 'teenage mutant ninja turtles'],
-
-        'Superheroes': ['batman', 'superman', 'spiderman', 'wonder woman', 'iron man', 'captain america', 'hulk', 'thor', 'flash', 'green lantern', 'aquaman', 'wolverine', 'deadpool', 'black widow', 'ant-man'],
-
-        'Foods': ['apple', 'bread', 'cheese', 'donut', 'egg', 'fish', 'garlic', 'ham', 'ice cream', 'jam', 'kale', 'lobster', 'meat', 'nuts', 'onion', 'pasta', 'quinoa', 'rice', 'soup', 'toast', 'udon', 'vanilla', 'waffle', 'yogurt', 'ziti'],
-
-        'Desserts': ['cake', 'cookies', 'pie', 'ice cream', 'pudding', 'brownie', 'donut', 'candy', 'chocolate', 'marshmallow', 'fudge', 'cupcake', 'tart', 'mousse', 'sorbet'],
-
-        'Body parts': ['ankle', 'arm', 'back', 'chest', 'ear', 'elbow', 'eye', 'face', 'foot', 'hand', 'head', 'knee', 'leg', 'mouth', 'neck', 'nose', 'shoulder', 'thumb', 'toe', 'waist'],
-
-        'School subjects': ['art', 'biology', 'chemistry', 'drama', 'english', 'french', 'geography', 'history', 'music', 'physics', 'science', 'math', 'literature', 'psychology', 'sociology'],
-
-        'Toys': ['ball', 'doll', 'blocks', 'puzzle', 'teddy bear', 'car', 'train', 'airplane', 'robot', 'action figure', 'board game', 'video game', 'kite', 'yo-yo', 'frisbee'],
-
-        'Games': ['chess', 'checkers', 'monopoly', 'scrabble', 'poker', 'blackjack', 'bingo', 'solitaire', 'hide and seek', 'tag', 'hopscotch', 'jump rope', 'video games', 'board games', 'card games'],
-
-        'Stores': ['grocery store', 'pharmacy', 'bookstore', 'clothing store', 'hardware store', 'pet store', 'toy store', 'electronics store', 'department store', 'convenience store'],
-
-        'Restaurants': ['mcdonalds', 'burger king', 'subway', 'pizza hut', 'kfc', 'taco bell', 'chinese restaurant', 'italian restaurant', 'mexican restaurant', 'fast food', 'diner', 'cafe'],
-
-        'Holidays': ['christmas', 'thanksgiving', 'halloween', 'easter', 'valentines day', 'new years', 'independence day', 'memorial day', 'labor day', 'mothers day', 'fathers day', 'birthday'],
-
-        'Tools': ['hammer', 'screwdriver', 'wrench', 'saw', 'drill', 'pliers', 'measuring tape', 'level', 'chisel', 'file', 'sandpaper', 'nail', 'screw', 'bolt', 'nut'],
-
-        'Weather': ['sunny', 'cloudy', 'rainy', 'snowy', 'windy', 'stormy', 'foggy', 'humid', 'dry', 'hot', 'cold', 'freezing', 'warm', 'cool', 'thunder', 'lightning', 'hail', 'sleet', 'drizzle', 'mist'],
-
-        'Emotions': ['happy', 'sad', 'angry', 'excited', 'nervous', 'calm', 'surprised', 'confused', 'proud', 'embarrassed', 'jealous', 'grateful', 'worried', 'relaxed', 'frustrated', 'content', 'anxious', 'joyful', 'disappointed', 'hopeful']
-      };
-
-      let currentTopic = '';
-      let currentLetter = 'A';
-      let currentLetterIndex = 0;
-      let score = 0;
-      let streak = 0;
-      let bestStreak = 0;
-      let gameRunning = false;
-      let timeLeft = 60;
-      let timer = null;
-      let completedWords = [];
-      let scrambledOrder = false;
-      let letterSequence = [];
-      let reportedWords = [];
-      let lastRejectedWord = null;
-      
-      // New game state variables
-      let gameMode = 'classic';
-      let letterMode = 'all';
-      let difficulty = 'normal';
-      let powerUps = { skip: 3, extraTime: 2, hint: 3 };
-      let comboMultiplier = 1;
-      let fireMode = false;
-      let fireModeEnd = 0;
-      let hintActive = false;
-
-      const topicSelect = document.getElementById('topicSelect');
-      const gameModeSelect = document.getElementById('gameModeSelect');
-      const letterModeSelect = document.getElementById('letterModeSelect');
-      const difficultySelect = document.getElementById('difficultySelect');
-      const topicDisplay = document.getElementById('topicDisplay');
-      const gameContent = document.getElementById('gameContent');
-      const gameOver = document.getElementById('gameOver');
-      const currentLetterEl = document.getElementById('currentLetter');
-      const wordInput = document.getElementById('wordInput');
-      const feedback = document.getElementById('feedback');
-      const scoreEl = document.getElementById('score');
-      const streakEl = document.getElementById('streak');
-      const letterProgressEl = document.getElementById('letterProgress');
-      const timerEl = document.getElementById('timer');
-      const scrambleButton = document.getElementById('scrambleButton');
-      const comboDisplay = document.getElementById('comboDisplay');
-      const hintDisplay = document.getElementById('hintDisplay');
-
-      // Populate topics
-      TOPICS.forEach(topic => {
-        const opt = document.createElement('option');
-        opt.value = topic;
-        opt.textContent = topic;
-        topicSelect.appendChild(opt);
-      });
-
-      function randomTopic() {
-        const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
-        topicSelect.value = topic;
-        currentTopic = topic;
-        topicDisplay.textContent = `Topic: ${topic}`;
-      }
-
-      function toggleScramble() {
-        scrambledOrder = !scrambledOrder;
-        if (scrambledOrder) {
-          scrambleButton.textContent = '🔀 Scrambled';
-        } else {
-          scrambleButton.textContent = '📝 Order';
-        }
-      }
-
-      function createLetterSequence() {
-        let letters;
-        letterMode = letterModeSelect.value;
-        
-        switch(letterMode) {
-          case 'all':
-            letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-            break;
-          case 'no-qx':
-            letters = 'ABCDEFGHIJKLMNOPRSTUVWYZ'.split('');
-            break;
-          case 'vowels':
-            letters = 'AEIOU'.split('');
-            break;
-          case 'consonants':
-            letters = 'BCDFGHJKLMNPQRSTVWXYZ'.split('');
-            break;
-          case 'backwards':
-            letters = 'ZYXWVUTSRQPONMLKJIHGFEDCBA'.split('');
-            break;
-        }
-        
-        if (scrambledOrder && letterMode !== 'backwards') {
-          for (let i = letters.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [letters[i], letters[j]] = [letters[j], letters[i]];
-          }
-        }
-        return letters;
-      }
-
-      function getInitialTime() {
-        gameMode = gameModeSelect.value;
-        difficulty = difficultySelect.value;
-        
-        let baseTime;
-        switch(gameMode) {
-          case 'lightning': baseTime = 30; break;
-          case 'endurance': baseTime = 30; break;
-          case 'sudden-death': baseTime = 999; break;
-          default: baseTime = 60; break;
-        }
-        
-        if (difficulty === 'beginner') baseTime += 30;
-        else if (difficulty === 'expert') baseTime -= 15;
-        else if (difficulty === 'master') baseTime -= 30;
-        
-        return baseTime;
-      }
-
-      function startGame() {
-        if (!topicSelect.value) {
-          alert('Please choose a topic first!');
-          return;
-        }
-
-        currentTopic = topicSelect.value;
-        letterSequence = createLetterSequence();
-        currentLetterIndex = 0;
-        currentLetter = letterSequence[0];
-        score = 0;
-        streak = 0;
-        bestStreak = 0;
-        timeLeft = getInitialTime();
-        completedWords = [];
-        gameRunning = true;
-        powerUps = { skip: 3, extraTime: 2, hint: 3 };
-        comboMultiplier = 1;
-        fireMode = false;
-        hintActive = false;
-
-        gameContent.style.display = 'block';
-        gameOver.style.display = 'none';
-        topicDisplay.textContent = `Topic: ${currentTopic}`;
-
-        updatePowerUpButtons();
-        updateDisplay();
-        wordInput.focus();
-        
-        timer = setInterval(() => {
-          timeLeft -= 0.1;
-          timerEl.textContent = timeLeft.toFixed(1) + 's';
-          
-          if (timeLeft <= 10) {
-            timerEl.classList.add('urgent');
-          }
-          
-          if (fireMode && Date.now() > fireModeEnd) {
-            fireMode = false;
-            comboMultiplier = 1;
-            wordInput.classList.remove('fire-mode');
-            updateComboDisplay();
-          }
-          
-          if (timeLeft <= 0) {
-            endGame();
-          }
-        }, 100);
-      }
-
-      function nextLetter() {
-        currentLetterIndex++;
-        if (currentLetterIndex >= letterSequence.length) {
-          currentLetterIndex = 0;
-        }
-        currentLetter = letterSequence[currentLetterIndex];
-        updateDisplay();
-      }
-
-      function updateDisplay() {
-        currentLetterEl.textContent = currentLetter;
-        scoreEl.textContent = score;
-        streakEl.textContent = streak;
-        letterProgressEl.textContent = `${currentLetterIndex + 1}/${letterSequence.length}`;
-        wordInput.value = '';
-        wordInput.className = fireMode ? 'word-input fire-mode' : 'word-input';
-        feedback.innerHTML = '';
-        hintDisplay.textContent = '';
-        updateComboDisplay();
-      }
-
-      function updateComboDisplay() {
-        if (streak >= 10 && fireMode) {
-          comboDisplay.innerHTML = '<span class="combo-text">🔥 FIRE MODE! 3x Points!</span>';
-        } else if (streak >= 5) {
-          comboDisplay.innerHTML = '<span class="combo-text">⚡ 2x Points!</span>';
-        } else {
-          comboDisplay.innerHTML = '';
-        }
-      }
-
-      function updatePowerUpButtons() {
-        document.getElementById('skipButton').textContent = `⏭️ Skip (${powerUps.skip})`;
-        document.getElementById('timeButton').textContent = `⏰ +10s (${powerUps.extraTime})`;
-        document.getElementById('hintButton').textContent = `💡 Hint (${powerUps.hint})`;
-        
-        document.getElementById('skipButton').disabled = powerUps.skip <= 0;
-        document.getElementById('timeButton').disabled = powerUps.extraTime <= 0;
-        document.getElementById('hintButton').disabled = powerUps.hint <= 0;
-      }
-
-      function isValidWord(word, letter, topic) {
-        if (!word || word.length < 2) return { valid: false, reason: 'Too short' };
-        if (word[0].toLowerCase() !== letter.toLowerCase()) return { valid: false, reason: 'Wrong letter' };
-        if (!/^[a-zA-Z\s]+$/.test(word)) return { valid: false, reason: 'Letters and spaces only' };
-
-        const cleanWord = word.toLowerCase().trim();
-        const topicWords = WORD_LISTS[topic] || [];
-        
-        if (difficulty === 'expert' && word !== word.trim()) {
-          return { valid: false, reason: 'No extra spaces in Expert mode' };
-        }
-        
-        if (topicWords.includes(cleanWord)) {
-          if (difficulty === 'master') {
-            const letterWords = topicWords.filter(w => w[0].toLowerCase() === letter.toLowerCase());
-            const commonWords = letterWords.slice(0, Math.min(3, letterWords.length));
-            if (commonWords.includes(cleanWord)) {
-              return { valid: false, reason: 'Too common for Master mode', allowReport: false };
-            }
-          }
-          return { valid: true, quality: 'great', reason: 'Perfect answer!' };
-        }
-        
-        return { valid: false, reason: 'Not recognized', allowReport: true };
-      }
-
-      function submitWord() {
-        if (!gameRunning) return;
-        
-        const word = wordInput.value.trim();
-        const startTime = Date.now();
-        const result = isValidWord(word, currentLetter, currentTopic);
-        
-        if (result.valid) {
-          let points = 3;
-          
-          if (word.length >= 6) points += 2;
-          else if (word.length >= 4) points += 1;
-          
-          if ('QXZ'.includes(currentLetter)) points += 5;
-          
-          if (hintActive || Date.now() - startTime < 3000) points += 1;
-          
-          if (fireMode) points *= 3;
-          else if (streak >= 5) points *= 2;
-          
-          score += points;
-          streak++;
-          bestStreak = Math.max(bestStreak, streak);
-          
-          if (streak === 10) {
-            fireMode = true;
-            fireModeEnd = Date.now() + 15000;
-          }
-          
-          completedWords.push({
-            letter: currentLetter,
-            word: word,
-            points: points,
-            quality: result.quality
-          });
-          
-          if (gameMode === 'lightning') timeLeft += 5;
-          else if (gameMode === 'endurance') timeLeft += 3;
-          
-          feedback.textContent = result.reason;
-          feedback.className = 'feedback success';
-          wordInput.className = fireMode ? 'word-input success fire-mode' : 'word-input success';
-          
-          setTimeout(() => {
-            nextLetter();
-          }, 500);
-          
-        } else {
-          if (gameMode === 'sudden-death') {
-            endGame();
-            return;
-          }
-          
-          streak = 0;
-          comboMultiplier = 1;
-          fireMode = false;
-          
-          feedback.className = 'feedback error';
-          wordInput.className = 'word-input error';
-          
-          if (result.allowReport) {
-            lastRejectedWord = { word: word, letter: currentLetter, topic: currentTopic };
-            feedback.innerHTML = `
-              ${result.reason}
-              <button class="report-button" onclick="openReportModal()">📝 Report Word</button>
-            `;
-          } else {
-            feedback.textContent = result.reason;
-          }
-          
-          setTimeout(() => {
-            wordInput.className = 'word-input';
-            feedback.innerHTML = '';
-            updateComboDisplay();
-          }, 3000);
-        }
-        
-        hintActive = false;
-        updatePowerUpButtons();
-      }
-
-      function useSkip() {
-        if (!gameRunning || powerUps.skip <= 0) return;
-        powerUps.skip--;
-        nextLetter();
-        updatePowerUpButtons();
-      }
-
-      function useExtraTime() {
-        if (!gameRunning || powerUps.extraTime <= 0) return;
-        powerUps.extraTime--;
-        timeLeft += 10;
-        updatePowerUpButtons();
-      }
-
-      function useHint() {
-        if (!gameRunning || powerUps.hint <= 0) return;
-        powerUps.hint--;
-        hintActive = true;
-        
-        const topicWords = WORD_LISTS[currentTopic] || [];
-        const letterWords = topicWords.filter(w => w[0].toLowerCase() === currentLetter.toLowerCase());
-        
-        if (letterWords.length > 0) {
-          const randomWord = letterWords[Math.floor(Math.random() * letterWords.length)];
-          const hintText = randomWord.substring(0, 2) + '...';
-          hintDisplay.textContent = `💡 Hint: ${hintText}`;
-        } else {
-          hintDisplay.textContent = '💡 No hints available for this letter';
-        }
-        
-        updatePowerUpButtons();
-      }
-
-      function endGame() {
-        gameRunning = false;
-        clearInterval(timer);
-        
-        gameContent.style.display = 'none';
-        gameOver.style.display = 'block';
-        
-        document.getElementById('finalScore').textContent = score;
-        document.getElementById('wordsCompleted').textContent = completedWords.length;
-        document.getElementById('bestStreak').textContent = bestStreak;
-        
-        const wordsList = document.getElementById('wordsList');
-        wordsList.innerHTML = '<h4>Your Words:</h4>';
-        completedWords.forEach(entry => {
-          const div = document.createElement('div');
-          div.className = 'word-entry';
-          
-          let bonusText = '';
-          if (entry.points > 3) bonusText = ` (+${entry.points - 3} bonus)`;
-          
-          div.innerHTML = `
-            <span><strong>${entry.letter}</strong>: ${entry.word}</span>
-            <span>${entry.points} pts${bonusText} ⭐</span>
-          `;
-          wordsList.appendChild(div);
-        });
-      }
-
-      function resetGame() {
-        gameRunning = false;
-        clearInterval(timer);
-        gameContent.style.display = 'none';
-        gameOver.style.display = 'none';
-        topicDisplay.textContent = 'Choose a topic to begin!';
-        timerEl.classList.remove('urgent');
-        fireMode = false;
-        comboMultiplier = 1;
-      }
-
-      function showInstructions() {
-        document.getElementById('instructionsModal').style.display = 'flex';
-      }
-
-      function closeInstructions() {
-        document.getElementById('instructionsModal').style.display = 'none';
-      }
-
-      function openReportModal() {
-        if (!lastRejectedWord) return;
-        
-        document.getElementById('reportedWord').textContent = lastRejectedWord.word;
-        document.getElementById('reportedTopic').textContent = lastRejectedWord.topic;
-        document.getElementById('reportModal').style.display = 'flex';
-      }
-
-      function closeReportModal() {
-        document.getElementById('reportModal').style.display = 'none';
-      }
-
-      function submitReport() {
-        if (!lastRejectedWord) return;
-        
-        reportedWords.push({
-          word: lastRejectedWord.word,
-          letter: lastRejectedWord.letter,
-          topic: lastRejectedWord.topic,
-          timestamp: new Date().toISOString()
-        });
-        
-        console.log('Reported word:', lastRejectedWord);
-        alert(`Thanks! We'll review "${lastRejectedWord.word}" for ${lastRejectedWord.topic}.`);
-        
-        closeReportModal();
-        lastRejectedWord = null;
-      }
-
-      // Event listeners
-      wordInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          submitWord();
-        }
-      });
-
-      wordInput.addEventListener('input', () => {
-        if (wordInput.className.includes('success') || wordInput.className.includes('error')) {
-          wordInput.className = 'word-input';
-          feedback.innerHTML = '';
-        }
-      });
-
-      document.getElementById('reportModal').addEventListener('click', (e) => {
-        if (e.target.id === 'reportModal') {
-          closeReportModal();
-        }
-      });
-
-      document.getElementById('instructionsModal').addEventListener('click', (e) => {
-        if (e.target.id === 'instructionsModal') {
-          closeInstructions();
-        }
-      });
-    </script>
+    <script src="a11y.js"></script>
+    <script src="wordlists.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>
