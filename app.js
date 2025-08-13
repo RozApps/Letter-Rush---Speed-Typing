@@ -91,6 +91,10 @@
   document.getElementById('backBtn').addEventListener('click', () => { resetGame(); goto(home); });
   document.getElementById('homeFromOverBtn').addEventListener('click', () => { resetGame(); goto(home); });
   document.getElementById('playAgainBtn').addEventListener('click', () => { startGame(); });
+  document.getElementById('quitButton').addEventListener('click', () => {
+  if (!gameRunning) return;
+  endGame();
+});
 
   // ===== Game helpers =====
   function createLetterSequence(){
