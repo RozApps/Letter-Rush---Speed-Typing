@@ -1,4 +1,195 @@
-<!DOCTYPE html>
+'Weather': ['sunny', 'cloudy', 'rainy', 'snowy', 'windy', 'stormy', 'foggy', 'humid', 'dry', 'hot', 'cold', 'freezing', 'warm', 'cool', 'thunder', 'lightning', 'hail', 'sleet', 'drizzle', 'mist'],
+
+        'Emotions': ['happy', 'sad', 'angry', 'excited', 'nervous', 'calm', 'surprised', 'confused', 'proud', 'embarrassed', 'jealous', 'grateful', 'worried', 'relaxed', 'frustrated', 'content', 'anxious', 'joyful', 'disappointed', 'hopeful']
+      };
+
+      let currentTopic = '';
+      let currentLetter = 'A';
+      let currentLetterIndex = 0;
+      let score = 0;
+      let streak = 0;
+      let bestStreak = 0;
+      let gameRunning = false;
+      let timeLeft = 60;
+      let timer = null;
+      let completedWords = [];
+      let scrambledOrder = false;
+      let letterSequence = [];
+      let reportedWords = [];
+      let lastRejectedWord = null;
+      
+      // New game state variables
+      let gameMode = 'classic';
+      let letterMode = 'all';
+      let difficulty = 'normal';
+      let powerUps = { skip: 3, extraTime: 2, hint: 3 };
+      let comboMultiplier = 1;
+      let fireMode = false;
+      let fireModeEnd = 0;
+      let hintActive = false;
+
+      const topicSelect = document.getElementById('topicSelect');
+      const gameModeSelect = document.getElementById('gameModeSelect');
+      const letterModeSelect = document.getElementById('letterModeSelect');
+      const difficultySelect = document.getElementById('difficultySelect');
+      const topicDisplay = document.getElementById('topicDisplay');
+      const gameContent = document.getElementById('gameContent');
+      const gameOver = document.getElementById('gameOver');
+      const currentLetterEl = document.getElementById('currentLetter');
+      const wordInput = document.getElementById('wordInput');
+      const feedback = document.getElementById('feedback');
+      const scoreEl = document.getElementById('score');
+      const streakEl = document.getElementById('streak');
+      const letterProgressEl = document.getElementById('letterProgress');
+      const timerEl = document.getElementById('timer');
+      const scrambleButton = document.getElementById('scrambleButton');
+      const comboDisplay = document.getElementById('comboDisplay');
+      const hintDisplay = document.getElementById('hintDisplay');
+
+      // Populate topics
+      TOPICS.forEach(topic => {
+        const opt = document.createElement('option');
+        opt.value = topic;
+        opt.textContent = topic;
+        topicSelect.appendChild(opt);
+      });
+
+      function randomTopic() {
+        const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
+        topicSelect.value = topic;
+        currentTopic = topic;
+        topicDisplay.textContent = `Topic: ${topic}`;
+      }
+
+      function toggleScramble() {
+        scrambledOrder = !scrambledOrder;
+        if (scrambledOrder) {
+          scrambleButton.textContent = '🔀 Scrambled';
+        } else {
+          scrambleButton.textContent = '📝 Order';
+        }
+      }
+
+      function createLetterSequence() {
+        let letters;
+        letterMode = letterModeSelect.value;
+        
+        switch(letterMode) {
+          case 'all':
+            letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            break;
+          case 'no-qx':
+            letters = 'ABCDEFGHIJKLMNOPRSTUVWYZ'.split('');
+            break;
+          case 'vowels':
+            letters = 'AEIOU'.split('');
+            break;
+          case 'consonants':
+            letters = 'BCDFGHJKLMNPQRSTVWXYZ'.split('');
+            break;
+          case 'backwards':
+            letters = 'ZYXWVUTSRQPONMLKJIHGFEDCBA'.split('');
+            break;
+        }
+        
+        if (scrambledOrder && letterMode !== 'backwards') {
+          for (let i = letters.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [letters[i], letters[j]] = [letters[j], letters[i]];
+          }
+        }
+        return letters;
+      }
+
+      function getInitialTime() {
+        gameMode = gameModeSelect.value;
+        difficulty = difficultySelect.value;
+        
+        let baseTime;
+        switch(gameMode) {
+          case 'lightning': baseTime = 30; break;
+          case 'endurance': baseTime = 30; break;
+          case 'sudden-death': baseTime = 999; break;
+          default: baseTime = 60; break;
+        }
+        
+        if (difficulty === 'beginner') baseTime += 30;
+        else if (difficulty === 'expert') baseTime -= 15;
+        else if (difficulty === 'master') baseTime -= 30;
+        
+        return baseTime;
+      }
+
+      function startGame() {
+        if (!topicSelect.value) {
+          alert('Please choose a topic first!');
+          return;
+        }
+
+        currentTopic = topicSelect.value;
+        letterSequence = createLetterSequence();
+        currentLetterIndex = 0;
+        currentLetter = letterSequence[0];
+        score = 0;
+        streak = 0;
+        bestStreak = 0;
+        timeLeft = getInitialTime();
+        completedWords = [];
+        gameRunning = true;
+        powerUps = { skip: 3, extraTime: 2, hint: 3 };
+        comboMultiplier = 1;
+        fireMode = false;
+        hintActive = false;
+
+        gameContent.style.display = 'block';
+        gameOver.style.display = 'none';
+        topicDisplay.textContent = `Topic: ${currentTopic}`;
+
+        updatePowerUpButtons();
+        updateDisplay();
+        wordInput.focus();
+        
+        timer = setInterval(() => {
+          timeLeft -= 0.1;
+          timerEl.textContent = timeLeft.toFixed(1) + 's';
+          
+          if (timeLeft <= 10) {
+            timerEl.classList.add('urgent');
+          }
+          
+          if (fireMode && Date.now() > fireModeEnd) {
+            fireMode = false;
+            comboMultiplier = 1;
+            wordInput.classList.remove('fire-mode');
+            updateComboDisplay();
+          }
+          
+          if (timeLeft <= 0) {
+            endGame();
+          }
+        }, 100);
+      }
+
+      function nextLetter() {
+        currentLetterIndex++;
+        if (currentLetterIndex >= letterSequence.length) {
+          currentLetterIndex = 0;
+        }
+        currentLetter = letterSequence[currentLetterIndex];
+        updateDisplay();
+      }
+
+      function updateDisplay() {
+        currentLetterEl.textContent = currentLetter;
+        scoreEl.textContent = score;
+        streakEl.textContent = streak;
+        letterProgressEl.textContent = `${currentLetterIndex + 1}/${letterSequence.length}`;
+        wordInput.value = '';
+        wordInput.className = fireMode ? 'word-input fire-mode' : 'word-input';
+        feedback.innerHTML = '';
+        hintDisplay.textContent = '';
+        updateComboDisplay();
+      }<!DOCTYPE html>
 <html>
   <head>
     <base target="_top">
@@ -397,478 +588,57 @@
 
     <script>
       const TOPICS = [
-        'Animals','Countries','Fruits','Cities','Colors','Sports'
+        'Animals','Countries','Fruits','Cities','Colors','Sports','Vehicles',
+        'Occupations','Things in a kitchen','Movies','TV Shows','Cartoons',
+        'Superheroes','Foods','Desserts','Body parts','School subjects','Toys',
+        'Games','Stores','Restaurants','Holidays','Tools','Weather','Emotions'
       ];
 
       const WORD_LISTS = {
-        'Animals': ['ant', 'bear', 'cat', 'dog', 'elephant', 'fish', 'goat', 'horse', 'iguana', 'jaguar', 'kangaroo', 'lion', 'monkey', 'newt', 'octopus', 'pig', 'quail', 'rabbit', 'snake', 'tiger', 'unicorn', 'vampire bat', 'whale', 'yak', 'zebra'],
-        'Countries': ['argentina', 'brazil', 'canada', 'denmark', 'egypt', 'france', 'germany', 'haiti', 'india', 'japan', 'kenya', 'libya', 'mexico', 'norway', 'oman', 'peru', 'qatar', 'russia', 'spain', 'turkey', 'uganda', 'vietnam', 'wales', 'yemen', 'zambia'],
-        'Fruits': ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew', 'kiwi', 'lemon', 'mango', 'nectarine', 'orange', 'papaya', 'quince', 'raspberry', 'strawberry', 'tangerine', 'ugli fruit', 'vanilla', 'watermelon', 'yuzu', 'zucchini'],
-        'Cities': ['atlanta', 'boston', 'chicago', 'dallas', 'edinburgh', 'florence', 'geneva', 'houston', 'istanbul', 'jakarta', 'kyoto', 'london', 'madrid', 'nairobi', 'oslo', 'paris', 'quebec', 'rome', 'seattle', 'tokyo', 'utrecht', 'vienna', 'washington', 'yokohama', 'zurich'],
-        'Colors': ['aqua', 'blue', 'cyan', 'red', 'emerald', 'fuchsia', 'green', 'indigo', 'jade', 'khaki', 'lavender', 'magenta', 'navy', 'orange', 'purple', 'red', 'silver', 'turquoise', 'ultramarine', 'violet', 'white', 'yellow', 'zinc'],
-        'Sports': ['archery', 'baseball', 'cricket', 'diving', 'equestrian', 'football', 'golf', 'hockey', 'judo', 'karate', 'lacrosse', 'marathon', 'netball', 'polo', 'quidditch', 'rugby', 'soccer', 'tennis', 'volleyball', 'wrestling', 'yoga']
-      };
+        'Animals': ['aardvark', 'alligator', 'alpaca', 'ant', 'anteater', 'antelope', 'ape', 'armadillo', 'baboon', 'badger', 'barn owl', 'bat', 'bear', 'beaver', 'bee', 'beetle', 'bird', 'bison', 'black bear', 'blue whale', 'boar', 'brown bear', 'buffalo', 'bull', 'butterfly', 'camel', 'cat', 'caterpillar', 'cheetah', 'chicken', 'chimpanzee', 'chipmunk', 'cobra', 'cow', 'coyote', 'crab', 'crane', 'crocodile', 'crow', 'deer', 'dog', 'dolphin', 'donkey', 'dove', 'duck', 'eagle', 'eel', 'elephant', 'elk', 'emu', 'falcon', 'ferret', 'fire ant', 'fish', 'flamingo', 'fly', 'fox', 'frog', 'fruit bat', 'gazelle', 'giraffe', 'goat', 'goose', 'gorilla', 'grasshopper', 'gray wolf', 'grizzly bear', 'hamster', 'hawk', 'hedgehog', 'hippo', 'honey bee', 'horse', 'hummingbird', 'hyena', 'iguana', 'jackal', 'jaguar', 'jellyfish', 'kangaroo', 'killer whale', 'koala', 'ladybug', 'lamb', 'leopard', 'lion', 'lizard', 'llama', 'lobster', 'lynx', 'monkey', 'moose', 'mouse', 'mule', 'newt', 'octopus', 'opossum', 'ostrich', 'otter', 'owl', 'ox', 'panda', 'panther', 'parrot', 'peacock', 'pelican', 'penguin', 'pig', 'pigeon', 'polar bear', 'porcupine', 'quail', 'rabbit', 'raccoon', 'rat', 'raven', 'red fox', 'rhinoceros', 'robin', 'sea lion', 'seahorse', 'seal', 'shark', 'sheep', 'skunk', 'sloth', 'snail', 'snake', 'spider', 'squirrel', 'starfish', 'swan', 'tiger', 'turkey', 'turtle', 'unicorn', 'vampire bat', 'vulture', 'walrus', 'wasp', 'whale', 'white shark', 'wolf', 'woodpecker', 'worm', 'yak', 'zebra'],
 
-      let currentTopic = '';
-      let currentLetter = 'A';
-      let currentLetterIndex = 0;
-      let score = 0;
-      let streak = 0;
-      let bestStreak = 0;
-      let gameRunning = false;
-      let timeLeft = 60;
-      let timer = null;
-      let completedWords = [];
-      let scrambledOrder = false;
-      let letterSequence = [];
-      let reportedWords = [];
-      let lastRejectedWord = null;
-      
-      // New game state variables
-      let gameMode = 'classic';
-      let letterMode = 'all';
-      let difficulty = 'normal';
-      let powerUps = { skip: 3, extraTime: 2, hint: 3 };
-      let comboMultiplier = 1;
-      let fireMode = false;
-      let fireModeEnd = 0;
-      let hintActive = false;
+        'Countries': ['afghanistan', 'albania', 'algeria', 'andorra', 'angola', 'argentina', 'armenia', 'australia', 'austria', 'azerbaijan', 'bahamas', 'bahrain', 'bangladesh', 'barbados', 'belarus', 'belgium', 'belize', 'benin', 'bhutan', 'bolivia', 'bosnia', 'botswana', 'brazil', 'brunei', 'bulgaria', 'burkina faso', 'burundi', 'cambodia', 'cameroon', 'canada', 'cape verde', 'chad', 'chile', 'china', 'colombia', 'comoros', 'congo', 'costa rica', 'croatia', 'cuba', 'cyprus', 'czech republic', 'democratic republic of congo', 'denmark', 'djibouti', 'dominica', 'dominican republic', 'east timor', 'ecuador', 'egypt', 'el salvador', 'equatorial guinea', 'eritrea', 'estonia', 'ethiopia', 'fiji', 'finland', 'france', 'gabon', 'gambia', 'georgia', 'germany', 'ghana', 'greece', 'grenada', 'guatemala', 'guinea', 'guinea bissau', 'guyana', 'haiti', 'honduras', 'hungary', 'iceland', 'india', 'indonesia', 'iran', 'iraq', 'ireland', 'israel', 'italy', 'ivory coast', 'jamaica', 'japan', 'jordan', 'kazakhstan', 'kenya', 'kiribati', 'kuwait', 'kyrgyzstan', 'laos', 'latvia', 'lebanon', 'lesotho', 'liberia', 'libya', 'liechtenstein', 'lithuania', 'luxembourg', 'macedonia', 'madagascar', 'malawi', 'malaysia', 'maldives', 'mali', 'malta', 'marshall islands', 'mauritania', 'mauritius', 'mexico', 'micronesia', 'moldova', 'monaco', 'mongolia', 'montenegro', 'morocco', 'mozambique', 'myanmar', 'namibia', 'nauru', 'nepal', 'netherlands', 'new zealand', 'nicaragua', 'niger', 'nigeria', 'north korea', 'norway', 'oman', 'pakistan', 'palau', 'panama', 'papua new guinea', 'paraguay', 'peru', 'philippines', 'poland', 'portugal', 'qatar', 'romania', 'russia', 'rwanda', 'saint lucia', 'samoa', 'san marino', 'saudi arabia', 'senegal', 'serbia', 'seychelles', 'sierra leone', 'singapore', 'slovakia', 'slovenia', 'solomon islands', 'somalia', 'south africa', 'south korea', 'south sudan', 'spain', 'sri lanka', 'sudan', 'suriname', 'swaziland', 'sweden', 'switzerland', 'syria', 'taiwan', 'tajikistan', 'tanzania', 'thailand', 'togo', 'tonga', 'trinidad and tobago', 'tunisia', 'turkey', 'turkmenistan', 'tuvalu', 'uganda', 'ukraine', 'united arab emirates', 'united kingdom', 'united states', 'uruguay', 'uzbekistan', 'vanuatu', 'vatican city', 'venezuela', 'vietnam', 'wales', 'yemen', 'zambia', 'zimbabwe'],
 
-      const topicSelect = document.getElementById('topicSelect');
-      const gameModeSelect = document.getElementById('gameModeSelect');
-      const letterModeSelect = document.getElementById('letterModeSelect');
-      const difficultySelect = document.getElementById('difficultySelect');
-      const topicDisplay = document.getElementById('topicDisplay');
-      const gameContent = document.getElementById('gameContent');
-      const gameOver = document.getElementById('gameOver');
-      const currentLetterEl = document.getElementById('currentLetter');
-      const wordInput = document.getElementById('wordInput');
-      const feedback = document.getElementById('feedback');
-      const scoreEl = document.getElementById('score');
-      const streakEl = document.getElementById('streak');
-      const letterProgressEl = document.getElementById('letterProgress');
-      const timerEl = document.getElementById('timer');
-      const scrambleButton = document.getElementById('scrambleButton');
-      const comboDisplay = document.getElementById('comboDisplay');
-      const hintDisplay = document.getElementById('hintDisplay');
+        'Fruits': ['acai', 'apple', 'apricot', 'avocado', 'banana', 'blackberry', 'blackcurrant', 'blueberry', 'boysenberry', 'breadfruit', 'cantaloupe', 'cherry', 'clementine', 'coconut', 'cranberry', 'currant', 'date', 'dragonfruit', 'durian', 'elderberry', 'fig', 'gooseberry', 'grape', 'grapefruit', 'guava', 'honeydew', 'huckleberry', 'jackfruit', 'kiwi', 'kumquat', 'lemon', 'lime', 'lingonberry', 'lychee', 'mandarin', 'mango', 'melon', 'mulberry', 'nectarine', 'orange', 'papaya', 'passionfruit', 'peach', 'pear', 'persimmon', 'pineapple', 'plum', 'pomegranate', 'pomelo', 'prickly pear', 'quince', 'rambutan', 'raspberry', 'starfruit', 'strawberry', 'tangerine', 'tomato', 'ugli fruit', 'vanilla', 'watermelon', 'ximenia', 'yuzu', 'zucchini'],
 
-      // Populate topics
-      TOPICS.forEach(topic => {
-        const opt = document.createElement('option');
-        opt.value = topic;
-        opt.textContent = topic;
-        topicSelect.appendChild(opt);
-      });
+        'Colors': ['amber', 'aqua', 'aquamarine', 'azure', 'beige', 'black', 'blue', 'bronze', 'brown', 'burgundy', 'burnt orange', 'chartreuse', 'coral', 'crimson', 'cyan', 'dark blue', 'emerald', 'forest green', 'fuchsia', 'gold', 'gray', 'green', 'hot pink', 'indigo', 'ivory', 'jade', 'khaki', 'lavender', 'lemon', 'lime', 'magenta', 'maroon', 'mint', 'navy', 'olive', 'orange', 'peach', 'pink', 'plum', 'purple', 'red', 'rose', 'ruby', 'salmon', 'scarlet', 'silver', 'tan', 'teal', 'turquoise', 'ultramarine', 'violet', 'white', 'yellow', 'zinc'],
 
-      function randomTopic() {
-        const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
-        topicSelect.value = topic;
-        currentTopic = topic;
-        topicDisplay.textContent = `Topic: ${topic}`;
-      }
+        'Cities': ['atlanta', 'amsterdam', 'austin', 'baghdad', 'baltimore', 'bangkok', 'barcelona', 'beijing', 'berlin', 'birmingham', 'bogota', 'boston', 'brussels', 'budapest', 'buenos aires', 'cairo', 'calcutta', 'cape town', 'caracas', 'chicago', 'cologne', 'copenhagen', 'dallas', 'delhi', 'denver', 'detroit', 'dublin', 'dubai', 'edinburgh', 'florence', 'frankfurt', 'geneva', 'glasgow', 'hamburg', 'helsinki', 'hong kong', 'houston', 'istanbul', 'jakarta', 'jerusalem', 'johannesburg', 'kansas city', 'kiev', 'kuala lumpur', 'kyoto', 'las vegas', 'lima', 'lisbon', 'london', 'los angeles', 'lyon', 'madrid', 'manchester', 'manila', 'marseille', 'melbourne', 'mexico city', 'miami', 'milan', 'montreal', 'moscow', 'mumbai', 'munich', 'nairobi', 'naples', 'new delhi', 'new york', 'nice', 'oslo', 'ottawa', 'paris', 'philadelphia', 'phoenix', 'prague', 'quebec', 'rio de janeiro', 'rome', 'saint petersburg', 'san francisco', 'santiago', 'sao paulo', 'seattle', 'seoul', 'shanghai', 'singapore', 'stockholm', 'sydney', 'tehran', 'tokyo', 'toronto', 'tunis', 'vancouver', 'venice', 'vienna', 'warsaw', 'washington', 'yokohama', 'zurich'],
 
-      function toggleScramble() {
-        scrambledOrder = !scrambledOrder;
-        if (scrambledOrder) {
-          scrambleButton.textContent = '🔀 Scrambled';
-        } else {
-          scrambleButton.textContent = '📝 Order';
-        }
-      }
+        'Sports': ['archery', 'athletics', 'badminton', 'baseball', 'basketball', 'biathlon', 'bobsled', 'bowling', 'boxing', 'canoeing', 'cricket', 'curling', 'cycling', 'darts', 'diving', 'equestrian', 'fencing', 'football', 'golf', 'gymnastics', 'handball', 'hockey', 'judo', 'karate', 'kayaking', 'lacrosse', 'marathon', 'martial arts', 'netball', 'polo', 'powerlifting', 'quidditch', 'racquetball', 'rowing', 'rugby', 'running', 'sailing', 'skiing', 'snowboarding', 'soccer', 'softball', 'squash', 'surfing', 'swimming', 'table tennis', 'taekwondo', 'tennis', 'track and field', 'triathlon', 'ultimate frisbee', 'volleyball', 'water polo', 'weightlifting', 'wrestling', 'yoga'],
 
-      function createLetterSequence() {
-        let letters;
-        letterMode = letterModeSelect.value;
-        
-        switch(letterMode) {
-          case 'all':
-            letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-            break;
-          case 'no-qx':
-            letters = 'ABCDEFGHIJKLMNOPRSTUVWYZ'.split('');
-            break;
-          case 'vowels':
-            letters = 'AEIOU'.split('');
-            break;
-          case 'consonants':
-            letters = 'BCDFGHJKLMNPQRSTVWXYZ'.split('');
-            break;
-          case 'backwards':
-            letters = 'ZYXWVUTSRQPONMLKJIHGFEDCBA'.split('');
-            break;
-        }
-        
-        if (scrambledOrder && letterMode !== 'backwards') {
-          for (let i = letters.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [letters[i], letters[j]] = [letters[j], letters[i]];
-          }
-        }
-        return letters;
-      }
+        'Vehicles': ['airplane', 'ambulance', 'bicycle', 'boat', 'bus', 'car', 'canoe', 'drone', 'ferry', 'helicopter', 'jet', 'kayak', 'limousine', 'motorcycle', 'plane', 'rocket', 'scooter', 'ship', 'submarine', 'taxi', 'train', 'truck', 'van', 'yacht'],
 
-      function getInitialTime() {
-        gameMode = gameModeSelect.value;
-        difficulty = difficultySelect.value;
-        
-        let baseTime;
-        switch(gameMode) {
-          case 'lightning': baseTime = 30; break;
-          case 'endurance': baseTime = 30; break;
-          case 'sudden-death': baseTime = 999; break; // No real time limit
-          default: baseTime = 60; break;
-        }
-        
-        // Difficulty adjustments
-        if (difficulty === 'beginner') baseTime += 30;
-        else if (difficulty === 'expert') baseTime -= 15;
-        else if (difficulty === 'master') baseTime -= 30;
-        
-        return baseTime;
-      }
+        'Occupations': ['actor', 'baker', 'chef', 'doctor', 'engineer', 'farmer', 'guard', 'nurse', 'pilot', 'teacher', 'writer'],
 
-      function startGame() {
-        if (!topicSelect.value) {
-          alert('Please choose a topic first!');
-          return;
-        }
+        'Things in a kitchen': ['blender', 'bowl', 'cup', 'dish', 'fork', 'glass', 'kettle', 'knife', 'ladle', 'mug', 'oven', 'pan', 'plate', 'pot', 'spoon', 'toaster'],
 
-        currentTopic = topicSelect.value;
-        letterSequence = createLetterSequence();
-        currentLetterIndex = 0;
-        currentLetter = letterSequence[0];
-        score = 0;
-        streak = 0;
-        bestStreak = 0;
-        timeLeft = getInitialTime();
-        completedWords = [];
-        gameRunning = true;
-        powerUps = { skip: 3, extraTime: 2, hint: 3 };
-        comboMultiplier = 1;
-        fireMode = false;
-        hintActive = false;
+        'Movies': ['avatar', 'batman', 'cars', 'dumbo', 'elf', 'frozen', 'gladiator', 'hulk', 'inception', 'jaws', 'kramer', 'lego movie', 'matrix', 'nemo', 'pirates', 'rocky', 'superman', 'titanic', 'up', 'wall-e', 'x-men'],
 
-        gameContent.style.display = 'block';
-        gameOver.style.display = 'none';
-        topicDisplay.textContent = `Topic: ${currentTopic}`;
+        'TV Shows': ['friends', 'seinfeld', 'the office', 'breaking bad', 'lost', 'game of thrones', 'stranger things', 'the simpsons', 'family guy', 'south park'],
 
-        updatePowerUpButtons();
-        updateDisplay();
-        wordInput.focus();
-        
-        timer = setInterval(() => {
-          timeLeft -= 0.1;
-          timerEl.textContent = timeLeft.toFixed(1) + 's';
-          
-          if (timeLeft <= 10) {
-            timerEl.classList.add('urgent');
-          }
-          
-          // Check fire mode
-          if (fireMode && Date.now() > fireModeEnd) {
-            fireMode = false;
-            comboMultiplier = 1;
-            wordInput.classList.remove('fire-mode');
-            updateComboDisplay();
-          }
-          
-          if (timeLeft <= 0) {
-            endGame();
-          }
-        }, 100);
-      }
+        'Cartoons': ['mickey mouse', 'bugs bunny', 'tom and jerry', 'scooby doo', 'spongebob', 'pokemon', 'dragon ball', 'naruto', 'sailor moon', 'teenage mutant ninja turtles'],
 
-      function nextLetter() {
-        currentLetterIndex++;
-        if (currentLetterIndex >= letterSequence.length) {
-          currentLetterIndex = 0;
-        }
-        currentLetter = letterSequence[currentLetterIndex];
-        updateDisplay();
-      }
+        'Superheroes': ['batman', 'superman', 'spiderman', 'wonder woman', 'iron man', 'captain america', 'hulk', 'thor', 'flash', 'green lantern', 'aquaman', 'wolverine', 'deadpool', 'black widow', 'ant-man'],
 
-      function updateDisplay() {
-        currentLetterEl.textContent = currentLetter;
-        scoreEl.textContent = score;
-        streakEl.textContent = streak;
-        letterProgressEl.textContent = `${currentLetterIndex + 1}/${letterSequence.length}`;
-        wordInput.value = '';
-        wordInput.className = fireMode ? 'word-input fire-mode' : 'word-input';
-        feedback.innerHTML = '';
-        hintDisplay.textContent = '';
-        updateComboDisplay();
-      }
+        'Foods': ['apple', 'bread', 'cheese', 'donut', 'egg', 'fish', 'garlic', 'ham', 'ice cream', 'jam', 'kale', 'lobster', 'meat', 'nuts', 'onion', 'pasta', 'quinoa', 'rice', 'soup', 'toast', 'udon', 'vanilla', 'waffle', 'yogurt', 'ziti'],
 
-      function updateComboDisplay() {
-        if (streak >= 10 && fireMode) {
-          comboDisplay.innerHTML = '<span class="combo-text">🔥 FIRE MODE! 3x Points!</span>';
-        } else if (streak >= 5) {
-          comboDisplay.innerHTML = '<span class="combo-text">⚡ 2x Points!</span>';
-        } else {
-          comboDisplay.innerHTML = '';
-        }
-      }
+        'Desserts': ['cake', 'cookies', 'pie', 'ice cream', 'pudding', 'brownie', 'donut', 'candy', 'chocolate', 'marshmallow', 'fudge', 'cupcake', 'tart', 'mousse', 'sorbet'],
 
-      function updatePowerUpButtons() {
-        document.getElementById('skipButton').textContent = `⏭️ Skip (${powerUps.skip})`;
-        document.getElementById('timeButton').textContent = `⏰ +10s (${powerUps.extraTime})`;
-        document.getElementById('hintButton').textContent = `💡 Hint (${powerUps.hint})`;
-        
-        document.getElementById('skipButton').disabled = powerUps.skip <= 0;
-        document.getElementById('timeButton').disabled = powerUps.extraTime <= 0;
-        document.getElementById('hintButton').disabled = powerUps.hint <= 0;
-      }
+        'Body parts': ['ankle', 'arm', 'back', 'chest', 'ear', 'elbow', 'eye', 'face', 'foot', 'hand', 'head', 'knee', 'leg', 'mouth', 'neck', 'nose', 'shoulder', 'thumb', 'toe', 'waist'],
 
-      function isValidWord(word, letter, topic) {
-        if (!word || word.length < 2) return { valid: false, reason: 'Too short' };
-        if (word[0].toLowerCase() !== letter.toLowerCase()) return { valid: false, reason: 'Wrong letter' };
-        if (!/^[a-zA-Z\s]+$/.test(word)) return { valid: false, reason: 'Letters and spaces only' };
+        'School subjects': ['art', 'biology', 'chemistry', 'drama', 'english', 'french', 'geography', 'history', 'music', 'physics', 'science', 'math', 'literature', 'psychology', 'sociology'],
 
-        const cleanWord = word.toLowerCase().trim();
-        const topicWords = WORD_LISTS[topic] || [];
-        
-        // Expert mode: no typos allowed
-        if (difficulty === 'expert' && word !== word.trim()) {
-          return { valid: false, reason: 'No extra spaces in Expert mode' };
-        }
-        
-        if (topicWords.includes(cleanWord)) {
-          // Master mode: only accept less common words (skip first 10 common ones)
-          if (difficulty === 'master') {
-            const letterWords = topicWords.filter(w => w[0].toLowerCase() === letter.toLowerCase());
-            const commonWords = letterWords.slice(0, Math.min(3, letterWords.length));
-            if (commonWords.includes(cleanWord)) {
-              return { valid: false, reason: 'Too common for Master mode', allowReport: false };
-            }
-          }
-          return { valid: true, quality: 'great', reason: 'Perfect answer!' };
-        }
-        
-        return { valid: false, reason: 'Not recognized', allowReport: true };
-      }
+        'Toys': ['ball', 'doll', 'blocks', 'puzzle', 'teddy bear', 'car', 'train', 'airplane', 'robot', 'action figure', 'board game', 'video game', 'kite', 'yo-yo', 'frisbee'],
 
-      function submitWord() {
-        if (!gameRunning) return;
-        
-        const word = wordInput.value.trim();
-        const startTime = Date.now();
-        const result = isValidWord(word, currentLetter, currentTopic);
-        
-        if (result.valid) {
-          let points = 3;
-          
-          // Length bonus
-          if (word.length >= 6) points += 2;
-          else if (word.length >= 4) points += 1;
-          
-          // Rare letter bonus
-          if ('QXZ'.includes(currentLetter)) points += 5;
-          
-          // Speed bonus (answered in under 3 seconds)
-          if (hintActive || Date.now() - startTime < 3000) points += 1;
-          
-          // Combo multipliers
-          if (fireMode) points *= 3;
-          else if (streak >= 5) points *= 2;
-          
-          score += points;
-          streak++;
-          bestStreak = Math.max(bestStreak, streak);
-          
-          // Activate fire mode at 10 streak
-          if (streak === 10) {
-            fireMode = true;
-            fireModeEnd = Date.now() + 15000; // 15 seconds
-          }
-          
-          completedWords.push({
-            letter: currentLetter,
-            word: word,
-            points: points,
-            quality: result.quality
-          });
-          
-          // Game mode specific bonuses
-          if (gameMode === 'lightning') timeLeft += 5;
-          else if (gameMode === 'endurance') timeLeft += 3;
-          
-          feedback.textContent = result.reason;
-          feedback.className = 'feedback success';
-          wordInput.className = fireMode ? 'word-input success fire-mode' : 'word-input success';
-          
-          setTimeout(() => {
-            nextLetter();
-          }, 500);
-          
-        } else {
-          // Sudden death mode
-          if (gameMode === 'sudden-death') {
-            endGame();
-            return;
-          }
-          
-          streak = 0;
-          comboMultiplier = 1;
-          fireMode = false;
-          
-          feedback.className = 'feedback error';
-          wordInput.className = 'word-input error';
-          
-          if (result.allowReport) {
-            lastRejectedWord = { word: word, letter: currentLetter, topic: currentTopic };
-            feedback.innerHTML = `
-              ${result.reason}
-              <button class="report-button" onclick="openReportModal()">📝 Report Word</button>
-            `;
-          } else {
-            feedback.textContent = result.reason;
-          }
-          
-          setTimeout(() => {
-            wordInput.className = 'word-input';
-            feedback.innerHTML = '';
-            updateComboDisplay();
-          }, 3000);
-        }
-        
-        hintActive = false;
-        updatePowerUpButtons();
-      }
+        'Games': ['chess', 'checkers', 'monopoly', 'scrabble', 'poker', 'blackjack', 'bingo', 'solitaire', 'hide and seek', 'tag', 'hopscotch', 'jump rope', 'video games', 'board games', 'card games'],
 
-      function useSkip() {
-        if (!gameRunning || powerUps.skip <= 0) return;
-        powerUps.skip--;
-        nextLetter();
-        updatePowerUpButtons();
-      }
+        'Stores': ['grocery store', 'pharmacy', 'bookstore', 'clothing store', 'hardware store', 'pet store', 'toy store', 'electronics store', 'department store', 'convenience store'],
 
-      function useExtraTime() {
-        if (!gameRunning || powerUps.extraTime <= 0) return;
-        powerUps.extraTime--;
-        timeLeft += 10;
-        updatePowerUpButtons();
-      }
+        'Restaurants': ['mcdonalds', 'burger king', 'subway', 'pizza hut', 'kfc', 'taco bell', 'chinese restaurant', 'italian restaurant', 'mexican restaurant', 'fast food', 'diner', 'cafe'],
 
-      function useHint() {
-        if (!gameRunning || powerUps.hint <= 0) return;
-        powerUps.hint--;
-        hintActive = true;
-        
-        const topicWords = WORD_LISTS[currentTopic] || [];
-        const letterWords = topicWords.filter(w => w[0].toLowerCase() === currentLetter.toLowerCase());
-        
-        if (letterWords.length > 0) {
-          const randomWord = letterWords[Math.floor(Math.random() * letterWords.length)];
-          const hintText = randomWord.substring(0, 2) + '...';
-          hintDisplay.textContent = `💡 Hint: ${hintText}`;
-        } else {
-          hintDisplay.textContent = '💡 No hints available for this letter';
-        }
-        
-        updatePowerUpButtons();
-      }
+        'Holidays': ['christmas', 'thanksgiving', 'halloween', 'easter', 'valentines day', 'new years', 'independence day', 'memorial day', 'labor day', 'mothers day', 'fathers day', 'birthday'],
 
-      function endGame() {
-        gameRunning = false;
-        clearInterval(timer);
-        
-        gameContent.style.display = 'none';
-        gameOver.style.display = 'block';
-        
-        document.getElementById('finalScore').textContent = score;
-        document.getElementById('wordsCompleted').textContent = completedWords.length;
-        document.getElementById('bestStreak').textContent = bestStreak;
-        
-        const wordsList = document.getElementById('wordsList');
-        wordsList.innerHTML = '<h4>Your Words:</h4>';
-        completedWords.forEach(entry => {
-          const div = document.createElement('div');
-          div.className = 'word-entry';
-          
-          let bonusText = '';
-          if (entry.points > 3) bonusText = ` (+${entry.points - 3} bonus)`;
-          
-          div.innerHTML = `
-            <span><strong>${entry.letter}</strong>: ${entry.word}</span>
-            <span>${entry.points} pts${bonusText} ⭐</span>
-          `;
-          wordsList.appendChild(div);
-        });
-      }
+        'Tools': ['hammer', 'screwdriver', 'wrench', 'saw', 'drill', 'pliers', 'measuring tape', 'level', 'chisel', 'file', 'sandpaper', 'nail', 'screw', 'bolt', 'nut'],
 
-      function resetGame() {
-        gameRunning = false;
-        clearInterval(timer);
-        gameContent.style.display = 'none';
-        gameOver.style.display = 'none';
-        topicDisplay.textContent = 'Choose a topic to begin!';
-        timerEl.classList.remove('urgent');
-        fireMode = false;
-        comboMultiplier = 1;
-      }
-
-      function openReportModal() {
-        if (!lastRejectedWord) return;
-        
-        document.getElementById('reportedWord').textContent = lastRejectedWord.word;
-        document.getElementById('reportedTopic').textContent = lastRejectedWord.topic;
-        document.getElementById('reportModal').style.display = 'flex';
-      }
-
-      function closeReportModal() {
-        document.getElementById('reportModal').style.display = 'none';
-      }
-
-      function showInstructions() {
-        document.getElementById('instructionsModal').style.display = 'flex';
-      }
-
-      function closeInstructions() {
-        document.getElementById('instructionsModal').style.display = 'none';
-      }
-
-      function submitReport() {
-        if (!lastRejectedWord) return;
-        
-        reportedWords.push({
-          word: lastRejectedWord.word,
-          letter: lastRejectedWord.letter,
-          topic: lastRejectedWord.topic,
-          timestamp: new Date().toISOString()
-        });
-        
-        console.log('Reported word:', lastRejectedWord);
-        alert(`Thanks! We'll review "${lastRejectedWord.word}" for ${lastRejectedWord.topic}.`);
-        
-        closeReportModal();
-        lastRejectedWord = null;
-      }
-
-      // Event listeners
-      wordInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          submitWord();
-        }
-      });
-
-      wordInput.addEventListener('input', () => {
-        if (wordInput.className.includes('success') || wordInput.className.includes('error')) {
-          wordInput.className = 'word-input';
-          feedback.innerHTML = '';
-        }
-      });
-
-      document.getElementById('reportModal').addEventListener('click', (e) => {
-        if (e.target.id === 'reportModal') {
-          closeReportModal();
-        }
-      });
-
-      document.getElementById('instructionsModal').addEventListener('click', (e) => {
-        if (e.target.id === 'instructionsModal') {
-          closeInstructions();
-        }
-      });
-    </script>
-  </body>
-</html>
+        'Weather': ['sunny', 'cloudy', 'rainy', 'snowy', 'windy', 'stormy', 'foggy', 'humid', 'dry', 'hot', 'col
