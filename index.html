@@ -7,15 +7,15 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- HOME SCREEN -->
+    <!-- HOME SCREEN (all options stacked) -->
     <section id="homeScreen" class="screen active" role="region" aria-labelledby="homeTitle">
       <header>
         <h1 id="homeTitle">Letter Rush</h1>
-        <p class="subtitle">Choose options below. Accessibility settings are saved for next time.</p>
+        <p class="subtitle">Choose your options. Accessibility settings are saved.</p>
       </header>
 
       <div class="stack" aria-describedby="optionsHint">
-        <span id="optionsHint" class="muted">All controls are keyboard-accessible. Use Tab/Shift+Tab to navigate.</span>
+        <span id="optionsHint" class="muted">Tab through controls; Enter to activate buttons.</span>
 
         <div class="control">
           <label for="topicSelect">Topic</label>
@@ -55,7 +55,7 @@
           </select>
         </div>
 
-        <!-- A11y panel (home) -->
+        <!-- Accessibility (Home) -->
         <fieldset class="control" aria-labelledby="a11yLegendHome">
           <legend id="a11yLegendHome">Accessibility</legend>
           <div class="row">
@@ -86,7 +86,7 @@
       <div class="topbar">
         <button id="backBtn" class="link" aria-label="Back to home">← Back to Home</button>
         <h2 id="gameTitle" class="muted">Game</h2>
-        <!-- A11y panel (game) -->
+        <!-- Accessibility (Game) -->
         <div class="a11y-inline" aria-label="Accessibility controls">
           <label for="fontSizeSelectGame" class="sr-only">Font size</label>
           <select id="fontSizeSelectGame" class="a11y-font" aria-label="Font size">
@@ -141,7 +141,6 @@
       </div>
     </section>
 
-```html
     <!-- HOW-TO (inline) -->
     <section id="instructionsScreen" class="screen" role="region" aria-labelledby="howTitle">
       <h2 id="howTitle">🎮 How to Play Letter Rush</h2>
@@ -154,11 +153,9 @@
       <button id="closeHowBtn" class="primary">✅ Got it</button>
     </section>
 
-    <!-- Load styles and scripts -->
-    <link rel="stylesheet" href="styles.css" />
+    <!-- Scripts -->
     <script src="a11y.js"></script>
     <script src="wordlists.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
-```
