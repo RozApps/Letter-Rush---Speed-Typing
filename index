@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <title>Letter Rush - Speed Typing</title>
+    <style>
+      :root {
+        --menu-size: 18px;
+        --bg-color: #f9fafb;
+        --input-bg: white;
+        --input-border: #ccc;
+        --text-color: black;
+        --success-color: #10b981;
+        --error-color: #ef4444;
+        --accent-color: #3b82f6;
+      }
+
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        text-align: center;
+        background: var(--bg-color);
+        color: var(--text-color);
+      }
+
+      h1 {
+        font-size: 36px;
+        margin-bottom: 20px;
+      }
+
+      select, button {
+        padding: 12px 18px;
+        margin: 8px;
+        font-size: var(--menu-size);
+        min-height: 44px;
+      }
+
+      .game-area {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .challenge {
+        font-size: 32px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: var(--accent-color);
+      }
+
+      .current-letter {
+        font-size: 64px;
+        font-weight: bold;
+        color: var(--accent-color);
+        margin: 20px 0;
+      }
+
+      .word-input {
+        width: 100%;
+        max-width: 400px;
+        padding: 15px;
+        font-size: 24px;
+        border: 3px solid var(--input-border);
+        border-radius: 8px;
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .word-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .word-input.success {
+        border-color: var(--success-color);
+        background-color: rgba(16, 185, 129, 0.1);
+      }
+
+      .word-input.error {
+        border-color: var(--error-color);
+        background-color: rgba(239, 68, 68, 0.1);
+      }
+
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        margin: 20px 0;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .stat {
+        padding: 10px 20px;
+        background: #f3f4f6;
+        border-radius: 8px;
+      }
+
+      .timer {
+        font-size: 28px;
+        font-weight: bold;
+        color: var(--accent-color);
+        margin: 15px 0;
+      }
+
+      .timer.urgent {
+        color: var(--error-color);
+        animation: pulse 1s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      .feedback {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 10px 0;
+        min-height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .feedback.success { color: var(--success-color); }
+      .feedback.error { color: var(--error-color); }
+
+      .report-button {
+        background: var(--error-color);
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        margin-left: 10px;
+      }
+
+      .report-button:hover {
+        background: #dc2626;
+      }
+
+      .report-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .report-content {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+      }
+
+      .report-content h3 {
+        margin-top: 0;
+        color: var(--text-color);
+      }
+
+      .report-content button {
+        margin: 10px 5px;
+        padding: 10px 20px;
+      }
+
+      .power-ups {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 15px 0;
+      }
+
+      .power-up {
+        background: var(--accent-color);
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        min-width: 80px;
+      }
+
+      .power-up:hover {
+        background: #2563eb;
+      }
+
+      .power-up:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+      }
+
+      .hint-display {
+        font-size: 16px;
+        color: var(--accent-color);
+        font-weight: bold;
+        margin: 10px 0;
+        min-height: 20px;
+      }
+
+      .combo-text {
+        color: var(--success-color);
+        font-weight: bold;
+        animation: bounce 0.5s;
+      }
+
+      @keyframes bounce {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+      }
+
+      .fire-mode {
+        background: linear-gradient(45deg, #ff6b6b, #feca57);
+        animation: fireGlow 1s infinite alternate;
+      }
+
+      @keyframes fireGlow {
+        from { box-shadow: 0 0 20px rgba(255, 107, 107, 0.5); }
+        to { box-shadow: 0 0 30px rgba(254, 202, 87, 0.8); }
+      }
+
+      .button-row {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .game-over {
+        background: #f9fafb;
+        padding: 30px;
+        border-radius: 12px;
+        margin: 20px 0;
+      }
+
+      .final-score {
+        font-size: 48px;
+        font-weight: bold;
+        color: var(--accent-color);
+        margin: 20px 0;
+      }
+
+      .words-list {
+        max-height: 200px;
+        overflow-y: auto;
+        text-align: left;
+        margin: 20px 0;
+        padding: 15px;
+        background: #f9fafb;
+        border-radius: 8px;
+      }
+
+      .word-entry {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .word-entry:last-child {
+        border-bottom: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Letter Rush - Speed Typing</h1>
+
+    <div class="button-row">
+      <select id="topicSelect">
+        <option value="">Choose a topic</option>
+      </select>
+      <button onclick="randomTopic()">🎲 Random Topic</button>
+      
+      <select id="gameModeSelect">
+        <option value="classic">⏱️ Classic (60s)</option>
+        <option value="lightning">⚡ Lightning (30s+5s)</option>
+        <option value="endurance">🏃 Endurance (30s+3s)</option>
+        <option value="sudden-death">💀 Sudden Death</option>
+      </select>
+      
+      <select id="letterModeSelect">
+        <option value="all">🔤 All Letters</option>
+        <option value="no-qx">🚫 No Q/X</option>
+        <option value="vowels">📢 Vowels Only</option>
+        <option value="consonants">🔇 Consonants Only</option>
+        <option value="backwards">⬅️ Z to A</option>
+      </select>
+      
+      <select id="difficultySelect">
+        <option value="beginner">🌱 Beginner</option>
+        <option value="normal" selected>⚖️ Normal</option>
+        <option value="expert">🎯 Expert</option>
+        <option value="master">👑 Master</option>
+      </select>
+    </div>
+    
+    <div class="button-row">
+      <button onclick="toggleScramble()" id="scrambleButton">📝 Order</button>
+      <button onclick="startGame()">▶️ Start Game</button>
+      <button onclick="resetGame()">🔄 Reset</button>
+    </div>
+
+    <div class="game-area">
+      <div id="topicDisplay" class="challenge">Choose a topic to begin!</div>
+      
+      <div id="gameContent" style="display: none;">
+        <div class="current-letter" id="currentLetter">A</div>
+        <input type="text" id="wordInput" class="word-input" placeholder="Type your answer..." autocomplete="off">
+        <div class="feedback" id="feedback"></div>
+        
+        <div class="stats">
+          <div class="stat">Score: <span id="score">0</span></div>
+          <div class="stat">Streak: <span id="streak">0</span> <span id="comboDisplay"></span></div>
+          <div class="stat">Letter: <span id="letterProgress">1/26</span></div>
+        </div>
+        
+        <div class="power-ups" id="powerUps">
+          <button onclick="useSkip()" id="skipButton" class="power-up">⏭️ Skip (3)</button>
+          <button onclick="useExtraTime()" id="timeButton" class="power-up">⏰ +10s (2)</button>
+          <button onclick="useHint()" id="hintButton" class="power-up">💡 Hint (3)</button>
+        </div>
+        
+        <div class="timer" id="timer">60.0s</div>
+        <div id="hintDisplay" class="hint-display"></div>
+      </div>
+
+      <div id="gameOver" class="game-over" style="display: none;">
+        <h2>Game Over!</h2>
+        <div class="final-score" id="finalScore">0</div>
+        <div>Words completed: <span id="wordsCompleted">0</span></div>
+        <div>Best streak: <span id="bestStreak">0</span></div>
+        <div class="words-list" id="wordsList"></div>
+      </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="report-modal" style="display: none;">
+      <div class="report-content">
+        <h3>Report Word</h3>
+        <p>Do you think "<span id="reportedWord"></span>" should be accepted for <span id="reportedTopic"></span>?</p>
+        <p>Your report helps improve the game!</p>
+        <button onclick="submitReport()">📝 Yes, Report It</button>
+        <button onclick="closeReportModal()">❌ Cancel</button>
+      </div>
+    </div>
+
+    <script>
+      const TOPICS = [
+        'Animals','Countries','Fruits','Cities','Colors','Sports'
+      ];
+
+      const WORD_LISTS = {
+        'Animals': ['ant', 'bear', 'cat', 'dog', 'elephant', 'fish', 'goat', 'horse', 'iguana', 'jaguar', 'kangaroo', 'lion', 'monkey', 'newt', 'octopus', 'pig', 'quail', 'rabbit', 'snake', 'tiger', 'unicorn', 'vampire bat', 'whale', 'yak', 'zebra'],
+        'Countries': ['argentina', 'brazil', 'canada', 'denmark', 'egypt', 'france', 'germany', 'haiti', 'india', 'japan', 'kenya', 'libya', 'mexico', 'norway', 'oman', 'peru', 'qatar', 'russia', 'spain', 'turkey', 'uganda', 'vietnam', 'wales', 'yemen', 'zambia'],
+        'Fruits': ['apple', 'banana', 'cherry', 'date', 'elderberry', 'fig', 'grape', 'honeydew', 'kiwi', 'lemon', 'mango', 'nectarine', 'orange', 'papaya', 'quince', 'raspberry', 'strawberry', 'tangerine', 'ugli fruit', 'vanilla', 'watermelon', 'yuzu', 'zucchini'],
+        'Cities': ['atlanta', 'boston', 'chicago', 'dallas', 'edinburgh', 'florence', 'geneva', 'houston', 'istanbul', 'jakarta', 'kyoto', 'london', 'madrid', 'nairobi', 'oslo', 'paris', 'quebec', 'rome', 'seattle', 'tokyo', 'utrecht', 'vienna', 'washington', 'yokohama', 'zurich'],
+        'Colors': ['aqua', 'blue', 'cyan', 'red', 'emerald', 'fuchsia', 'green', 'indigo', 'jade', 'khaki', 'lavender', 'magenta', 'navy', 'orange', 'purple', 'red', 'silver', 'turquoise', 'ultramarine', 'violet', 'white', 'yellow', 'zinc'],
+        'Sports': ['archery', 'baseball', 'cricket', 'diving', 'equestrian', 'football', 'golf', 'hockey', 'judo', 'karate', 'lacrosse', 'marathon', 'netball', 'polo', 'quidditch', 'rugby', 'soccer', 'tennis', 'volleyball', 'wrestling', 'yoga']
+      };
+
+      let currentTopic = '';
+      let currentLetter = 'A';
+      let currentLetterIndex = 0;
+      let score = 0;
+      let streak = 0;
+      let bestStreak = 0;
+      let gameRunning = false;
+      let timeLeft = 60;
+      let timer = null;
+      let completedWords = [];
+      let scrambledOrder = false;
+      let letterSequence = [];
+      let reportedWords = [];
+      let lastRejectedWord = null;
+      
+      // New game state variables
+      let gameMode = 'classic';
+      let letterMode = 'all';
+      let difficulty = 'normal';
+      let powerUps = { skip: 3, extraTime: 2, hint: 3 };
+      let comboMultiplier = 1;
+      let fireMode = false;
+      let fireModeEnd = 0;
+      let hintActive = false;
+
+      const topicSelect = document.getElementById('topicSelect');
+      const gameModeSelect = document.getElementById('gameModeSelect');
+      const letterModeSelect = document.getElementById('letterModeSelect');
+      const difficultySelect = document.getElementById('difficultySelect');
+      const topicDisplay = document.getElementById('topicDisplay');
+      const gameContent = document.getElementById('gameContent');
+      const gameOver = document.getElementById('gameOver');
+      const currentLetterEl = document.getElementById('currentLetter');
+      const wordInput = document.getElementById('wordInput');
+      const feedback = document.getElementById('feedback');
+      const scoreEl = document.getElementById('score');
+      const streakEl = document.getElementById('streak');
+      const letterProgressEl = document.getElementById('letterProgress');
+      const timerEl = document.getElementById('timer');
+      const scrambleButton = document.getElementById('scrambleButton');
+      const comboDisplay = document.getElementById('comboDisplay');
+      const hintDisplay = document.getElementById('hintDisplay');
+
+      // Populate topics
+      TOPICS.forEach(topic => {
+        const opt = document.createElement('option');
+        opt.value = topic;
+        opt.textContent = topic;
+        topicSelect.appendChild(opt);
+      });
+
+      function randomTopic() {
+        const topic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
+        topicSelect.value = topic;
+        currentTopic = topic;
+        topicDisplay.textContent = `Topic: ${topic}`;
+      }
+
+      function toggleScramble() {
+        scrambledOrder = !scrambledOrder;
+        if (scrambledOrder) {
+          scrambleButton.textContent = '🔀 Scrambled';
+        } else {
+          scrambleButton.textContent = '📝 Order';
+        }
+      }
+
+      function createLetterSequence() {
+        let letters;
+        letterMode = letterModeSelect.value;
+        
+        switch(letterMode) {
+          case 'all':
+            letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            break;
+          case 'no-qx':
+            letters = 'ABCDEFGHIJKLMNOPRSTUVWYZ'.split('');
+            break;
+          case 'vowels':
+            letters = 'AEIOU'.split('');
+            break;
+          case 'consonants':
+            letters = 'BCDFGHJKLMNPQRSTVWXYZ'.split('');
+            break;
+          case 'backwards':
+            letters = 'ZYXWVUTSRQPONMLKJIHGFEDCBA'.split('');
+            break;
+        }
+        
+        if (scrambledOrder && letterMode !== 'backwards') {
+          for (let i = letters.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [letters[i], letters[j]] = [letters[j], letters[i]];
+          }
+        }
+        return letters;
+      }
+
+      function getInitialTime() {
+        gameMode = gameModeSelect.value;
+        difficulty = difficultySelect.value;
+        
+        let baseTime;
+        switch(gameMode) {
+          case 'lightning': baseTime = 30; break;
+          case 'endurance': baseTime = 30; break;
+          case 'sudden-death': baseTime = 999; break; // No real time limit
+          default: baseTime = 60; break;
+        }
+        
+        // Difficulty adjustments
+        if (difficulty === 'beginner') baseTime += 30;
+        else if (difficulty === 'expert') baseTime -= 15;
+        else if (difficulty === 'master') baseTime -= 30;
+        
+        return baseTime;
+      }
+
+      function startGame() {
+        if (!topicSelect.value) {
+          alert('Please choose a topic first!');
+          return;
+        }
+
+        currentTopic = topicSelect.value;
+        letterSequence = createLetterSequence();
+        currentLetterIndex = 0;
+        currentLetter = letterSequence[0];
+        score = 0;
+        streak = 0;
+        bestStreak = 0;
+        timeLeft = getInitialTime();
+        completedWords = [];
+        gameRunning = true;
+        powerUps = { skip: 3, extraTime: 2, hint: 3 };
+        comboMultiplier = 1;
+        fireMode = false;
+        hintActive = false;
+
+        gameContent.style.display = 'block';
+        gameOver.style.display = 'none';
+        topicDisplay.textContent = `Topic: ${currentTopic}`;
+
+        updatePowerUpButtons();
+        updateDisplay();
+        wordInput.focus();
+        
+        timer = setInterval(() => {
+          timeLeft -= 0.1;
+          timerEl.textContent = timeLeft.toFixed(1) + 's';
+          
+          if (timeLeft <= 10) {
+            timerEl.classList.add('urgent');
+          }
+          
+          // Check fire mode
+          if (fireMode && Date.now() > fireModeEnd) {
+            fireMode = false;
+            comboMultiplier = 1;
+            wordInput.classList.remove('fire-mode');
+            updateComboDisplay();
+          }
+          
+          if (timeLeft <= 0) {
+            endGame();
+          }
+        }, 100);
+      }
+
+      function nextLetter() {
+        currentLetterIndex++;
+        if (currentLetterIndex >= letterSequence.length) {
+          currentLetterIndex = 0;
+        }
+        currentLetter = letterSequence[currentLetterIndex];
+        updateDisplay();
+      }
+
+      function updateDisplay() {
+        currentLetterEl.textContent = currentLetter;
+        scoreEl.textContent = score;
+        streakEl.textContent = streak;
+        letterProgressEl.textContent = `${currentLetterIndex + 1}/${letterSequence.length}`;
+        wordInput.value = '';
+        wordInput.className = fireMode ? 'word-input fire-mode' : 'word-input';
+        feedback.innerHTML = '';
+        hintDisplay.textContent = '';
+        updateComboDisplay();
+      }
+
+      function updateComboDisplay() {
+        if (streak >= 10 && fireMode) {
+          comboDisplay.innerHTML = '<span class="combo-text">🔥 FIRE MODE! 3x Points!</span>';
+        } else if (streak >= 5) {
+          comboDisplay.innerHTML = '<span class="combo-text">⚡ 2x Points!</span>';
+        } else {
+          comboDisplay.innerHTML = '';
+        }
+      }
+
+      function updatePowerUpButtons() {
+        document.getElementById('skipButton').textContent = `⏭️ Skip (${powerUps.skip})`;
+        document.getElementById('timeButton').textContent = `⏰ +10s (${powerUps.extraTime})`;
+        document.getElementById('hintButton').textContent = `💡 Hint (${powerUps.hint})`;
+        
+        document.getElementById('skipButton').disabled = powerUps.skip <= 0;
+        document.getElementById('timeButton').disabled = powerUps.extraTime <= 0;
+        document.getElementById('hintButton').disabled = powerUps.hint <= 0;
+      }
+
+      function isValidWord(word, letter, topic) {
+        if (!word || word.length < 2) return { valid: false, reason: 'Too short' };
+        if (word[0].toLowerCase() !== letter.toLowerCase()) return { valid: false, reason: 'Wrong letter' };
+        if (!/^[a-zA-Z\s]+$/.test(word)) return { valid: false, reason: 'Letters and spaces only' };
+
+        const cleanWord = word.toLowerCase().trim();
+        const topicWords = WORD_LISTS[topic] || [];
+        
+        // Expert mode: no typos allowed
+        if (difficulty === 'expert' && word !== word.trim()) {
+          return { valid: false, reason: 'No extra spaces in Expert mode' };
+        }
+        
+        if (topicWords.includes(cleanWord)) {
+          // Master mode: only accept less common words (skip first 10 common ones)
+          if (difficulty === 'master') {
+            const letterWords = topicWords.filter(w => w[0].toLowerCase() === letter.toLowerCase());
+            const commonWords = letterWords.slice(0, Math.min(3, letterWords.length));
+            if (commonWords.includes(cleanWord)) {
+              return { valid: false, reason: 'Too common for Master mode', allowReport: false };
+            }
+          }
+          return { valid: true, quality: 'great', reason: 'Perfect answer!' };
+        }
+        
+        return { valid: false, reason: 'Not recognized', allowReport: true };
+      }
+
+      function submitWord() {
+        if (!gameRunning) return;
+        
+        const word = wordInput.value.trim();
+        const startTime = Date.now();
+        const result = isValidWord(word, currentLetter, currentTopic);
+        
+        if (result.valid) {
+          let points = 3;
+          
+          // Length bonus
+          if (word.length >= 6) points += 2;
+          else if (word.length >= 4) points += 1;
+          
+          // Rare letter bonus
+          if ('QXZ'.includes(currentLetter)) points += 5;
+          
+          // Speed bonus (answered in under 3 seconds)
+          if (hintActive || Date.now() - startTime < 3000) points += 1;
+          
+          // Combo multipliers
+          if (fireMode) points *= 3;
+          else if (streak >= 5) points *= 2;
+          
+          score += points;
+          streak++;
+          bestStreak = Math.max(bestStreak, streak);
+          
+          // Activate fire mode at 10 streak
+          if (streak === 10) {
+            fireMode = true;
+            fireModeEnd = Date.now() + 15000; // 15 seconds
+          }
+          
+          completedWords.push({
+            letter: currentLetter,
+            word: word,
+            points: points,
+            quality: result.quality
+          });
+          
+          // Game mode specific bonuses
+          if (gameMode === 'lightning') timeLeft += 5;
+          else if (gameMode === 'endurance') timeLeft += 3;
+          
+          feedback.textContent = result.reason;
+          feedback.className = 'feedback success';
+          wordInput.className = fireMode ? 'word-input success fire-mode' : 'word-input success';
+          
+          setTimeout(() => {
+            nextLetter();
+          }, 500);
+          
+        } else {
+          // Sudden death mode
+          if (gameMode === 'sudden-death') {
+            endGame();
+            return;
+          }
+          
+          streak = 0;
+          comboMultiplier = 1;
+          fireMode = false;
+          
+          feedback.className = 'feedback error';
+          wordInput.className = 'word-input error';
+          
+          if (result.allowReport) {
+            lastRejectedWord = { word: word, letter: currentLetter, topic: currentTopic };
+            feedback.innerHTML = `
+              ${result.reason}
+              <button class="report-button" onclick="openReportModal()">📝 Report Word</button>
+            `;
+          } else {
+            feedback.textContent = result.reason;
+          }
+          
+          setTimeout(() => {
+            wordInput.className = 'word-input';
+            feedback.innerHTML = '';
+            updateComboDisplay();
+          }, 3000);
+        }
+        
+        hintActive = false;
+        updatePowerUpButtons();
+      }
+
+      function useSkip() {
+        if (!gameRunning || powerUps.skip <= 0) return;
+        powerUps.skip--;
+        nextLetter();
+        updatePowerUpButtons();
+      }
+
+      function useExtraTime() {
+        if (!gameRunning || powerUps.extraTime <= 0) return;
+        powerUps.extraTime--;
+        timeLeft += 10;
+        updatePowerUpButtons();
+      }
+
+      function useHint() {
+        if (!gameRunning || powerUps.hint <= 0) return;
+        powerUps.hint--;
+        hintActive = true;
+        
+        const topicWords = WORD_LISTS[currentTopic] || [];
+        const letterWords = topicWords.filter(w => w[0].toLowerCase() === currentLetter.toLowerCase());
+        
+        if (letterWords.length > 0) {
+          const randomWord = letterWords[Math.floor(Math.random() * letterWords.length)];
+          const hintText = randomWord.substring(0, 2) + '...';
+          hintDisplay.textContent = `💡 Hint: ${hintText}`;
+        } else {
+          hintDisplay.textContent = '💡 No hints available for this letter';
+        }
+        
+        updatePowerUpButtons();
+      }
+
+      function endGame() {
+        gameRunning = false;
+        clearInterval(timer);
+        
+        gameContent.style.display = 'none';
+        gameOver.style.display = 'block';
+        
+        document.getElementById('finalScore').textContent = score;
+        document.getElementById('wordsCompleted').textContent = completedWords.length;
+        document.getElementById('bestStreak').textContent = bestStreak;
+        
+        const wordsList = document.getElementById('wordsList');
+        wordsList.innerHTML = '<h4>Your Words:</h4>';
+        completedWords.forEach(entry => {
+          const div = document.createElement('div');
+          div.className = 'word-entry';
+          
+          let bonusText = '';
+          if (entry.points > 3) bonusText = ` (+${entry.points - 3} bonus)`;
+          
+          div.innerHTML = `
+            <span><strong>${entry.letter}</strong>: ${entry.word}</span>
+            <span>${entry.points} pts${bonusText} ⭐</span>
+          `;
+          wordsList.appendChild(div);
+        });
+      }
+
+      function resetGame() {
+        gameRunning = false;
+        clearInterval(timer);
+        gameContent.style.display = 'none';
+        gameOver.style.display = 'none';
+        topicDisplay.textContent = 'Choose a topic to begin!';
+        timerEl.classList.remove('urgent');
+        fireMode = false;
+        comboMultiplier = 1;
+      }
+
+      function openReportModal() {
+        if (!lastRejectedWord) return;
+        
+        document.getElementById('reportedWord').textContent = lastRejectedWord.word;
+        document.getElementById('reportedTopic').textContent = lastRejectedWord.topic;
+        document.getElementById('reportModal').style.display = 'flex';
+      }
+
+      function closeReportModal() {
+        document.getElementById('reportModal').style.display = 'none';
+      }
+
+      function submitReport() {
+        if (!lastRejectedWord) return;
+        
+        reportedWords.push({
+          word: lastRejectedWord.word,
+          letter: lastRejectedWord.letter,
+          topic: lastRejectedWord.topic,
+          timestamp: new Date().toISOString()
+        });
+        
+        console.log('Reported word:', lastRejectedWord);
+        alert(`Thanks! We'll review "${lastRejectedWord.word}" for ${lastRejectedWord.topic}.`);
+        
+        closeReportModal();
+        lastRejectedWord = null;
+      }
+
+      // Event listeners
+      wordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          submitWord();
+        }
+      });
+
+      wordInput.addEventListener('input', () => {
+        if (wordInput.className.includes('success') || wordInput.className.includes('error')) {
+          wordInput.className = 'word-input';
+          feedback.innerHTML = '';
+        }
+      });
+
+      document.getElementById('reportModal').addEventListener('click', (e) => {
+        if (e.target.id === 'reportModal') {
+          closeReportModal();
+        }
+      });
+    </script>
+  </body>
+</html>
