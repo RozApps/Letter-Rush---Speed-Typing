@@ -32,6 +32,31 @@
   const wordsCompletedEl = document.getElementById('wordsCompleted');
   const bestStreakEl = document.getElementById('bestStreak');
   const wordsList = document.getElementById('wordsList');
+// --- Keep UI visible when iOS keyboard opens ---
+const gameArea = document.querySelector('.game-area');
+
+function adjustForKeyboard() {
+  try {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const keyboardPixels = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    const extraPad = keyboardPixels > 0 ? keyboardPixels + 20 : 0;
+    gameArea.style.paddingBottom = `${120 + extraPad}px`;
+  } catch (_) {}
+}
+
+if (window.visualViewport) {
+  visualViewport.addEventListener('resize', adjustForKeyboard);
+  visualViewport.addEventListener('scroll', adjustForKeyboard);
+  window.addEventListener('orientationchange', () => setTimeout(adjustForKeyboard, 150));
+}
+
+wordInput.addEventListener('focus', () => {
+  setTimeout(() => {
+    wordInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    adjustForKeyboard();
+  }, 50);
+});
 
   // ===== A11y on both screens =====
   if (window.A11y) {
