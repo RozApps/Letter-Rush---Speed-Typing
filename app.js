@@ -1,4 +1,4 @@
-// app.js
+// app.js — robust validation + iOS keyboard-safe + fallback words for cache issues
 (function(){
   // ===== Screen refs =====
   const home = document.getElementById('homeScreen');
@@ -90,10 +90,45 @@
   // Track duplicates for the current session
   const usedWords = new Set();
 
+  // ===== Robust normalization & list access =====
+  const FALLBACK = {
+    // minimal safety nets in case wordlists.js is cached/missing
+    Animals: [
+      'aardvark','alligator','alpaca','ant','antelope','ape','baboon','badger','bat','bear','beaver','bee','bison','boar','buffalo',
+      'camel','cat','caterpillar','cheetah','chicken','chimpanzee','chipmunk','cobra','cougar','cow','coyote','crab','crane',
+      'crocodile','crow','deer','dog','dolphin','donkey','duck','eagle','eel','elephant','elk','emu','falcon','ferret',
+      'flamingo','fox','frog','gazelle','giraffe','goat','goldfish','goose','gorilla','hamster','hawk','hedgehog','hippo',
+      'horse','hummingbird','hyena','iguana','jaguar','jellyfish','kangaroo','koala','leopard','lion','llama','lobster',
+      'lynx','monkey','moose','mouse','mule','newt','octopus','opossum','ostrich','otter','owl','ox','panda','panther',
+      'parrot','peacock','pelican','penguin','pig','pigeon','porcupine','quail','rabbit','raccoon','rat','raven','rhino',
+      'robin','seal','shark','sheep','skunk','sloth','snail','snake','spider','squid','swan','tiger','turkey','turtle','wolf','zebra'
+    ],
+    Foods: ['apple','bread','cheese','donut','egg','fish','garlic','ham','ice cream','jam','kale','lobster','meat','nuts','onion','pasta','quinoa','rice','soup','toast','udon','vanilla','waffle','yogurt','ziti'],
+    Games: ['chess','checkers','monopoly','scrabble','poker','bingo','hangman','tic tac toe','battleship','connect four','jenga','uno','go fish','catan','risk'],
+    Cartoons: ['mickey mouse','bugs bunny','tom and jerry','scooby doo','spongebob','pokemon','dragon ball','naruto','sailor moon','teenage mutant ninja turtles'],
+    Occupations: ['actor','baker','chef','doctor','engineer','farmer','guard','nurse','pilot','teacher','writer']
+  };
+
+  function normalize(raw) {
+    return String(raw || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function getList(topic) {
+    const fromWordlists = (window.WORD_LISTS && window.WORD_LISTS[topic]) || [];
+    const fallback = FALLBACK[topic] || [];
+    // merge & dedupe so cached/short lists still accept common words
+    const merged = [...new Set([...fromWordlists, ...fallback])];
+    return merged;
+  }
+
   // ===== Init =====
   function populateTopics(){
     topicSelect.innerHTML = '<option value="">Choose a topic</option>';
-    (window.TOPICS || []).forEach(t => {
+    const list = (window.TOPICS && window.TOPICS.length) ? window.TOPICS : Object.keys(FALLBACK);
+    list.forEach(t => {
       const o = document.createElement('option');
       o.value = t; o.textContent = t;
       topicSelect.appendChild(o);
@@ -110,9 +145,9 @@
 
   document.getElementById('startBtn').addEventListener('click', startGame);
   document.getElementById('randomBtn').addEventListener('click', () => {
-    const list = window.TOPICS || [];
+    const list = Array.from(topicSelect.options).slice(1).map(o => o.value);
     if (!list.length) return;
-    topicSelect.value = list[Math.floor(Math.random() * (list.length))];
+    topicSelect.value = list[Math.floor(Math.random() * list.length)];
   });
   document.getElementById('howBtn').addEventListener('click', () => goto(how));
   document.getElementById('closeHowBtn').addEventListener('click', () => goto(home));
@@ -190,26 +225,33 @@
 
   // ===== Validation =====
   function isValidWord(raw, letter, topic){
-    if (!raw) return { valid:false, reason:'Too short' };
-    if (!/^[a-zA-Z\s'\-]+$/.test(raw)) return { valid:false, reason:"Letters, spaces, - and ' only" };
-    const clean = raw.toLowerCase().trim().replace(/\s+/g,' ');
-    if (clean.length < 2) return { valid:false, reason:'Too short' };
-    if (difficulty === 'expert' && (raw !== raw.trim() || /\s{2,}/.test(raw))) {
-      return { valid:false, reason:'No extra spaces in Expert mode' };
-    }
-    if (clean[0] !== letter.toLowerCase()) return { valid:false, reason:'Wrong letter' };
+    // Normalize aggressively
+    const clean = normalize(raw);
+    if (!clean) return { valid:false, reason:'Too short' };
+    if (!/^[a-z'\- ]+$/.test(clean)) return { valid:false, reason:"Letters, spaces, - and ' only" };
 
-    const words = (window.WORD_LISTS && window.WORD_LISTS[topic]) || [];
-    if (words.includes(clean)) {
-      if (difficulty === 'master') {
-        const letterWords = words.filter(w => w[0].toLowerCase() === letter.toLowerCase());
-        const common = letterWords.slice(0, Math.min(3, letterWords.length));
-        if (common.includes(clean)) {
-          return { valid:false, reason:'Too common for Master mode', allowReport:false };
-        }
+    // First-letter check
+    if (clean[0] !== String(letter || '').toLowerCase()) {
+      return { valid:false, reason:'Wrong letter' };
+    }
+
+    // Pull merged list (live word list + fallback safety net)
+    const words = getList(topic);
+
+    // Master mode: reject most common first-letter words (from the merged list top slice)
+    if (difficulty === 'master') {
+      const letterWords = words.filter(w => w[0] === clean[0]);
+      const common = letterWords.slice(0, Math.min(3, letterWords.length));
+      if (common.includes(clean)) {
+        return { valid:false, reason:'Too common for Master mode', allowReport:false };
       }
+    }
+
+    // Accept if we can find an exact match in the merged list
+    if (words.includes(clean)) {
       return { valid:true, quality:'great', reason:'Perfect answer!' };
     }
+
     return { valid:false, reason:'Not recognized', allowReport:true };
   }
 
@@ -309,8 +351,7 @@
     if (!gameRunning || powerUps.hint <= 0) return;
     powerUps.hint--;
     hintActive = true;
-    const list = (window.WORD_LISTS[currentTopic] || [])
-      .filter(w => w[0].toLowerCase() === currentLetter.toLowerCase());
+    const list = getList(currentTopic).filter(w => w[0] === currentLetter.toLowerCase());
     hintDisplay.textContent = list.length
       ? `💡 Hint: ${list[Math.floor(Math.random() * list.length)].slice(0, 2)}...`
       : '💡 No hints for this letter';
@@ -333,11 +374,11 @@
   function submitWord(){
     const raw = wordInput.value;
     const res = isValidWord(raw, currentLetter, currentTopic);
-    const word = raw.trim().replace(/\s+/g,' '); // normalized
+    const word = normalize(raw); // normalized
 
     if (res.valid) {
       // duplicate check for current session
-      const key = word.toLowerCase();
+      const key = word;
       if (usedWords.has(key)) {
         if (gameMode === 'sudden-death') { endGame(); return; }
         streak = 0; fireMode = false;
