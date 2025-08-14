@@ -86,3 +86,26 @@ button { cursor: pointer; border-width: 0; }
 .hidden {
   display: none;
 }
+/* Keep power-ups visible above iOS keyboard */
+.power-ups {
+  position: sticky;
+  bottom: 0;
+  z-index: 999;                    /* stay on top */
+  padding: 10px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background: var(--bg);           /* solid backdrop when it floats */
+  border-top: 1px solid var(--border);
+}
+
+/* Give the game area extra room so sticky bar doesn't overlap content */
+.game-area {
+  padding-bottom: 120px; /* space for buttons when sticky */
+}
+
+/* Prefer dynamic viewport height when supported (prevents jumpiness) */
+@supports (height: 100dvh) {
+  .game-area { min-height: 100dvh; }
+}
+
+/* iOS zoom avoidance on inputs (>=16px prevents involuntary zoom) */
+input[type="text"].word-input { font-size: 18px; }
