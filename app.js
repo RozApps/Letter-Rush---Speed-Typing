@@ -1,3 +1,4 @@
+// app.js
 (function(){
   // ===== Screen refs =====
   const home = document.getElementById('homeScreen');
@@ -25,38 +26,39 @@
   const skipBtn = document.getElementById('skipButton');
   const timeBtn = document.getElementById('timeButton');
   const hintBtn = document.getElementById('hintButton');
-  const quitBtn = document.getElementById('quitButton'); // Added this reference
+  const quitBtn = document.getElementById('quitButton');
 
   const gameOver = document.getElementById('gameOver');
   const finalScore = document.getElementById('finalScore');
   const wordsCompletedEl = document.getElementById('wordsCompleted');
   const bestStreakEl = document.getElementById('bestStreak');
   const wordsList = document.getElementById('wordsList');
-// --- Keep UI visible when iOS keyboard opens ---
-const gameArea = document.querySelector('.game-area');
 
-function adjustForKeyboard() {
-  try {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const keyboardPixels = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    const extraPad = keyboardPixels > 0 ? keyboardPixels + 20 : 0;
-    gameArea.style.paddingBottom = `${120 + extraPad}px`;
-  } catch (_) {}
-}
+  // --- Keep UI visible when iOS keyboard opens ---
+  const gameArea = document.querySelector('.game-area');
 
-if (window.visualViewport) {
-  visualViewport.addEventListener('resize', adjustForKeyboard);
-  visualViewport.addEventListener('scroll', adjustForKeyboard);
-  window.addEventListener('orientationchange', () => setTimeout(adjustForKeyboard, 150));
-}
+  function adjustForKeyboard() {
+    try {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const keyboardPixels = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      const extraPad = keyboardPixels > 0 ? keyboardPixels + 20 : 0;
+      gameArea.style.paddingBottom = `${120 + extraPad}px`;
+    } catch (_) {}
+  }
 
-wordInput.addEventListener('focus', () => {
-  setTimeout(() => {
-    wordInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    adjustForKeyboard();
-  }, 50);
-});
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', adjustForKeyboard);
+    visualViewport.addEventListener('scroll', adjustForKeyboard);
+    window.addEventListener('orientationchange', () => setTimeout(adjustForKeyboard, 150));
+  }
+
+  wordInput.addEventListener('focus', () => {
+    setTimeout(() => {
+      wordInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      adjustForKeyboard();
+    }, 50);
+  });
 
   // ===== A11y on both screens =====
   if (window.A11y) {
@@ -72,21 +74,21 @@ wordInput.addEventListener('focus', () => {
   let letterSequence = [];
 
   let score = 0, streak = 0, bestStreak = 0;
-  let gameRunning = false; 
-  let timeLeft = 60; 
+  let gameRunning = false;
+  let timeLeft = 60;
   let timer = null;
 
   let completedWords = [];
-  let hintActive = false; 
-  let fireMode = false; 
+  let hintActive = false;
+  let fireMode = false;
   let fireModeEnd = 0;
 
   let gameMode = 'classic', letterMode = 'all', difficulty = 'normal';
   let powerUps = { skip:3, extraTime:2, hint:3 };
   let lastLetterShownAt = 0;
 
-  // NEW: Track duplicates for the current session
-  let usedWords = new Set();
+  // Track duplicates for the current session
+  const usedWords = new Set();
 
   // ===== Init =====
   function populateTopics(){
@@ -110,7 +112,7 @@ wordInput.addEventListener('focus', () => {
   document.getElementById('randomBtn').addEventListener('click', () => {
     const list = window.TOPICS || [];
     if (!list.length) return;
-    topicSelect.value = list[Math.floor(Math.random() * list.length)];
+    topicSelect.value = list[Math.floor(Math.random() * (list.length))];
   });
   document.getElementById('howBtn').addEventListener('click', () => goto(how));
   document.getElementById('closeHowBtn').addEventListener('click', () => goto(home));
@@ -229,17 +231,18 @@ wordInput.addEventListener('focus', () => {
     powerUps = { skip:3, extraTime:2, hint:3 };
     hintActive = false; fireMode = false;
 
-    // NEW: reset duplicates store
+    // reset duplicates store
     usedWords.clear();
 
     updatePowerUpButtons();
     updateDisplay();
-    
-    // FIXED: Make sure game over is hidden when starting
+
+    // Make sure game over is hidden when starting
     gameOver.classList.add('hidden');
     document.getElementById('gameContent').classList.remove('hidden');
-    
+
     goto(game);
+    adjustForKeyboard();   // nudge layout after switching screens
     wordInput.focus();
 
     clearInterval(timer);
@@ -259,7 +262,7 @@ wordInput.addEventListener('focus', () => {
   }
 
   function endGame(){
-    gameRunning = false; 
+    gameRunning = false;
     clearInterval(timer);
 
     finalScore.textContent = score;
@@ -314,7 +317,7 @@ wordInput.addEventListener('focus', () => {
     updatePowerUpButtons();
   });
 
-  // FIXED: Quit button functionality
+  // Quit button functionality
   quitBtn.addEventListener('click', () => {
     if (!gameRunning) return;
     if (confirm('Are you sure you want to quit this game?')) {
@@ -333,10 +336,9 @@ wordInput.addEventListener('focus', () => {
     const word = raw.trim().replace(/\s+/g,' '); // normalized
 
     if (res.valid) {
-      // NEW: duplicate check for current session
+      // duplicate check for current session
       const key = word.toLowerCase();
       if (usedWords.has(key)) {
-        // Duplicate -> reject and do NOT advance letter or award points
         if (gameMode === 'sudden-death') { endGame(); return; }
         streak = 0; fireMode = false;
         feedback.textContent = 'Already used!';
@@ -399,9 +401,9 @@ wordInput.addEventListener('focus', () => {
     }
   });
 
-  // FIXED: Ensure game over is hidden on page load
+  // Ensure game over is hidden on page load + kick keyboard adjust once
   document.addEventListener('DOMContentLoaded', () => {
     gameOver.classList.add('hidden');
+    adjustForKeyboard(); // run once on load
   });
-
 })();
